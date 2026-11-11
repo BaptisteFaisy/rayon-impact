@@ -1,5 +1,7 @@
 # Release Impact Radius — Rayon d'impact d'une release
 
+**Live site:** <https://baptistefaisy.github.io/rayon-impact/> (GitHub Pages, public)
+
 A Forge app for Jira that reads everything attached to a version — tickets, code,
 builds, services, teams, incidents, documentation — and returns a **go /
 conditional go / no-go** verdict in which every reason points at its proof.
