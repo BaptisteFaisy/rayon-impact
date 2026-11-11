@@ -136,6 +136,19 @@ jobs:
           raise SystemExit(1 if (illisibles or vides) else 0)
           EOF
 
+      # Vu en reel : l'agent de conflit a pousse une reconciliation partielle
+      # (marqueur `>>>>>>>` + fichier tronque) sans qu'aucune porte ne le voie —
+      # la porte de compilation ne s'applique qu'au code. Ce controle est donc
+      # transversal : aucun fichier suivi ne doit contenir de marqueur de conflit.
+      - name: Aucun marqueur de conflit dans les fichiers suivis
+        shell: bash
+        run: |
+          if git grep -nE '^(<<<<<<<|>>>>>>>|=======$)' -- . ':!*.md.orig'; then
+            echo "::error::marqueur(s) de conflit trouves dans des fichiers suivis"
+            exit 1
+          fi
+          echo "aucun marqueur de conflit"
+
       # Les gardes de la CI se testent elles-memes : couche0 + agents
       # fireworks - stdlib, quelques secondes, aucun reseau.
       - name: Tests des gardes CI (couche0, fireworks)
