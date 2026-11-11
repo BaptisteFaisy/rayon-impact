@@ -30,6 +30,7 @@ import { ACTION_KEYS, runAction } from './actions/registry.js';
 import { ActionError, makeViewer } from './actions/types.js';
 import type { ActionDeps, DossierIndex } from './actions/types.js';
 import { recomputeRelease, resolvePolicy } from './engine/pipeline.js';
+import { buildImpactGraph } from './engine/graph.js';
 import { createMemoryGate, onJiraEvent } from './triggers/events.js';
 import type { JiraEventLike } from './triggers/events.js';
 import { onScheduled as runScheduled } from './triggers/scheduled.js';
@@ -142,19 +143,68 @@ const SCREENS: Record<string, (payload: ForgePayload, deps: ActionDeps) => Promi
     deps.store.getDossier(required(payload, 'versionId')),
   'screen.projectSettings': async (payload, deps) =>
     deps.store.getPolicy(required(payload, 'projectId')),
-  'screen.dashboardGadget': async (payload, deps) =>
-    deps.store.listSnapshots(required(payload, 'projectId'), 20),
+  'screen.dashboardGadget': async (payload, deps) => {
+    const projectId = required(payload, 'projectId');
+    const snapshots = await deps.store.listSnapshots(projectId, 20);
+    // The release date lives in the cached collection, not in the snapshot.
+    return Promise.all(
+      snapshots.map(async (snapshot) => {
+        const cached = await deps.store.getCollection(snapshot.versionId);
+        return {
+          versionId: snapshot.versionId,
+          versionName: snapshot.versionName,
+          verdict: snapshot.verdict,
+          confidence: snapshot.confidence,
+          computedAt: snapshot.computedAt,
+          releaseDate: cached?.release.version.releaseDate ?? null,
+        };
+      }),
+    );
+  },
+  /** RI-12: the impact graph, built from the cached collection and the signals. */
+  'screen.impactGraph': async (payload, deps) => {
+    const versionId = required(payload, 'versionId');
+    const cached = await deps.store.getCollection(versionId);
+    const dossier = await deps.store.getDossier(versionId);
+    if (!cached || !dossier) return null;
+    return buildImpactGraph(cached.release, dossier.signals);
+  },
+  /** RI-01: the versions of a project with their current verdict. */
+  'screen.projectVersions': async (payload, deps) => {
+    const projectId = required(payload, 'projectId');
+    const snapshots = await deps.store.listSnapshots(projectId, 50);
+    return snapshots.map((snapshot) => ({
+      versionId: snapshot.versionId,
+      versionName: snapshot.versionName,
+      verdict: snapshot.verdict,
+      confidence: snapshot.confidence,
+      computedAt: snapshot.computedAt,
+      released: snapshot.versionReleased,
+    }));
+  },
+  /** Settings screen: the policy is saved as a whole (RI-11). */
+  'screen.savePolicy': async (payload, deps) => {
+    const policy = payload.policy as Policy | undefined;
+    if (!policy || typeof policy.projectId !== 'string') {
+      throw new ActionError('invalid-input', 'A policy object with a projectId is required.');
+    }
+    await deps.store.savePolicy(policy);
+    return { ok: true, projectId: policy.projectId };
+  },
   'screen.issueContext': async (payload, deps) => {
     const issueId = required(payload, 'issueId');
-    const versions = await listVersionsForIssue(sql(), issueId);
-    const dossiers = await Promise.all(
-      versions.map(async (row) => ({
+    const rows = await listVersionsForIssue(sql(), issueId);
+    const versions = await Promise.all(
+      rows.map(async (row) => ({
         versionId: row.version_id,
         versionName: row.version_name,
         dossier: await deps.store.getDossier(row.version_id),
       })),
     );
-    return { issueId, versions: dossiers };
+    // Observation mode: no verdict shown on the ticket (SPEC §20).
+    const projectId = typeof payload.projectId === 'string' ? payload.projectId : '';
+    const policy = projectId ? await deps.store.getPolicy(projectId) : null;
+    return { issueId, versions, observationMode: Boolean(policy?.observationMode) };
   },
 };
 
