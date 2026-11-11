@@ -10,7 +10,7 @@ import {
   type Signal,
   type Verdict,
   type VerdictResult,
-} from '../types.js';
+} from '../types';
 
 function countActiveBySeverity(signals: Signal[]): SeverityCounts {
   const counts: SeverityCounts = {

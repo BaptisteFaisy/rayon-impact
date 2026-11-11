@@ -29,8 +29,17 @@ Deux mondes étanches :
    `src/actions/*`, `src/ui/*`, `src/index.ts`) : seuls ces modules importent
    `@forge/api`, `@forge/react`, `@forge/resolver`, `@forge/llm`.
 
-Import ESM : toujours avec l'extension `.js` (`import type { X } from '../types.js';`).
-Types uniquement → `import type`.
+Imports relatifs **sans extension** (`import type { X } from '../types';`) : le
+bundler webpack de Forge ne résout pas `./types.js` vers `types.ts` (erreur
+`Module not found` au `forge deploy`). Types uniquement → `import type`.
+
+`tsconfig.json` ne doit **pas** porter `noEmit: true` : ts-loader n'émettrait
+rien et le bundle échouerait (`TypeScript emitted no output`). Le typecheck
+passe le drapeau en ligne de commande (`npm run typecheck` → `tsc --noEmit`).
+
+`@forge/sql` s'importe **statiquement** : un `import(specificateurVariable)`
+provoque « Critical dependency: the request of a dependency is an expression »
+et le module manque à l'exécution.
 
 ## 3. Texte et i18n
 

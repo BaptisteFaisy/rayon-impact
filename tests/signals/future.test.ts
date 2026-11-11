@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import type { CollectedRelease, GraphFacts, Outcome } from '../../src/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
+import type { CollectedRelease, GraphFacts, Outcome } from '../../src/types';
+import type { DetectionContext } from '../../src/signals/context';
 import {
   detectFuture,
   futureDetectors,
   incidentsByService,
   objectiveFacts,
-} from '../../src/signals/future.js';
-import { collected, graphFacts, incident, issue } from '../fixtures/builders.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
+} from '../../src/signals/future';
+import { collected, graphFacts, incident, issue } from '../fixtures/builders';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
 
 /**
  * Vision signals (lot C): HIST-01 and OBJ-01 (SPEC §6.4, §7).

@@ -1,4 +1,4 @@
-import type { Locale } from '../../types.js';
+import type { Locale } from '../../types';
 
 /**
  * The two inputs of the waiver dialog, extracted so `WaiverDialog` stays under

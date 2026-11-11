@@ -6,11 +6,11 @@ import {
   type ScheduledDeps,
   type ScheduledVersion,
   type ScheduledVersionSource,
-} from '../../src/triggers/scheduled.js';
-import { createMemoryGate } from '../../src/triggers/events.js';
-import { OUTCOME_WINDOW_HOURS, type Outcome } from '../../src/types.js';
-import type { LogLevel, Logger, RecomputeMessage } from '../../src/ports.js';
-import { version } from '../fixtures/builders.js';
+} from '../../src/triggers/scheduled';
+import { createMemoryGate } from '../../src/triggers/events';
+import { OUTCOME_WINDOW_HOURS, type Outcome } from '../../src/types';
+import type { LogLevel, Logger, RecomputeMessage } from '../../src/ports';
+import { version } from '../fixtures/builders';
 
 const NOW = '2026-11-11T10:00:00.000Z';
 

@@ -1,12 +1,12 @@
-import { JiraReleaseCollector } from './jira.js';
-import { JsmIncidentCollector } from './jsm.js';
-import { ConfluencePageCollector } from './confluence.js';
-import { TeamworkGraphCollector } from './graph.js';
-import { impactedServiceIds, resolveServiceForIncident, resolveServiceForIssue } from './services.js';
-import type { ConfluenceClient } from './confluence.js';
-import type { GraphRunner } from './graph.js';
-import type { JiraClient } from './jira-client.js';
-import type { JsmClient } from './jsm.js';
+import { JiraReleaseCollector } from './jira';
+import { JsmIncidentCollector } from './jsm';
+import { ConfluencePageCollector } from './confluence';
+import { TeamworkGraphCollector } from './graph';
+import { impactedServiceIds, resolveServiceForIncident, resolveServiceForIssue } from './services';
+import type { ConfluenceClient } from './confluence';
+import type { GraphRunner } from './graph';
+import type { JiraClient } from './jira-client';
+import type { JsmClient } from './jsm';
 import type {
   CollectedRelease,
   GraphFacts,
@@ -14,8 +14,8 @@ import type {
   JiraIssue,
   Policy,
   SourceStatus,
-} from '../types.js';
-import type { Clock, Logger, ReleaseCollector } from '../ports.js';
+} from '../types';
+import type { Clock, Logger, ReleaseCollector } from '../ports';
 
 /**
  * The collector that actually feeds the engine: Jira first, then the other

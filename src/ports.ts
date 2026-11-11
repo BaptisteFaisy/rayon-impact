@@ -16,7 +16,7 @@ import type {
   Signal,
   Snapshot,
   Waiver,
-} from './types.js';
+} from './types';
 
 /** Persistence of dossiers, waivers, decisions, outcomes and policies. */
 export interface ReleaseStore {

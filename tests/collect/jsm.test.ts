@@ -7,9 +7,9 @@ import {
   discoverAffectedServicesField,
   jsmIncidentDto,
   jsmIncidentJql,
-} from '../../src/collect/jsm.js';
-import type { JsmCollectInput } from '../../src/collect/jsm.js';
-import type { ForgeRequest, ForgeResponseLike } from '../../src/collect/paging.js';
+} from '../../src/collect/jsm';
+import type { JsmCollectInput } from '../../src/collect/jsm';
+import type { ForgeRequest, ForgeResponseLike } from '../../src/collect/paging';
 
 /**
  * JSM incident collection (SPEC §7 EXP-01/EXP-02, §16, R5 §2.4/§4.6).

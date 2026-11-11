@@ -14,7 +14,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { Clock, Logger, ReleaseStore } from '../ports.js';
+import type { Clock, Logger, ReleaseStore } from '../ports';
 import type {
   CollectedRelease,
   Condition,
@@ -36,7 +36,7 @@ import type {
   Viewer,
   VisibilityChecker,
   Waiver,
-} from '../types.js';
+} from '../types';
 
 /* ------------------------------------------------------------- identity */
 

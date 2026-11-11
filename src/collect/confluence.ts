@@ -12,14 +12,14 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { ConfluencePage, JiraIssue, SourceStatus } from '../types.js';
+import type { ConfluencePage, JiraIssue, SourceStatus } from '../types';
 import {
   CollectRequestError,
   optionalText,
   readJson,
   sourceStatus,
   type ForgeRequest,
-} from './paging.js';
+} from './paging';
 
 /** Hard cap on pages fetched for one release (SPEC §15, bounded collection). */
 export const MAX_PAGES = 100;

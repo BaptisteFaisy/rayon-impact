@@ -3,15 +3,15 @@ import {
   onMessage,
   type ConsumerDeps,
   type RecomputeFn,
-} from '../../src/triggers/consumer.js';
+} from '../../src/triggers/consumer';
 import type {
   LogLevel,
   Logger,
   PipelineDeps,
   RecomputeMessage,
   RecomputeResult,
-} from '../../src/ports.js';
-import { snapshot } from '../fixtures/builders.js';
+} from '../../src/ports';
+import { snapshot } from '../fixtures/builders';
 
 const message: RecomputeMessage = {
   projectId: 'proj-pay',

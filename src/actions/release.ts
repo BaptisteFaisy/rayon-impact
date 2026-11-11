@@ -9,10 +9,10 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import { canViewerWaive } from '../engine/permissions.js';
-import { confidenceTitle, verdictTitle } from '../engine/verdict.js';
-import { getSignalDefinition } from '../signals/registry.js';
-import { SEVERITY_ORDER } from '../types.js';
+import { canViewerWaive } from '../engine/permissions';
+import { confidenceTitle, verdictTitle } from '../engine/verdict';
+import { getSignalDefinition } from '../signals/registry';
+import { SEVERITY_ORDER } from '../types';
 import type {
   Policy,
   ReleaseDossier,
@@ -20,8 +20,8 @@ import type {
   SeverityCounts,
   Signal,
   Waiver,
-} from '../types.js';
-import { ActionError } from './types.js';
+} from '../types';
+import { ActionError } from './types';
 import type {
   ActionDeps,
   ExplainSignalInput,
@@ -32,7 +32,7 @@ import type {
   ListReleaseSignalsOutput,
   SignalSummary,
   SignalView,
-} from './types.js';
+} from './types';
 
 /** Number of "what holds this version" signals returned by the impact action. */
 export const TOP_SIGNAL_LIMIT = 3;

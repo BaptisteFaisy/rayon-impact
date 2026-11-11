@@ -12,7 +12,7 @@ import type {
   Snapshot,
   SourceStatus,
   Team,
-} from '../../src/types.js';
+} from '../../src/types';
 
 /**
  * Fixture builders: every test file composes its dataset from these defaults

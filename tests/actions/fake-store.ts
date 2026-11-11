@@ -7,7 +7,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { ReleaseStore } from '../../src/ports.js';
+import type { ReleaseStore } from '../../src/ports';
 import type {
   CollectedRelease,
   Decision,
@@ -18,9 +18,9 @@ import type {
   Snapshot,
   Viewer,
   Waiver,
-} from '../../src/types.js';
-import { makeViewer } from '../../src/actions/types.js';
-import type { ActionDeps, DossierIndex, LocatedSignal, ReleaseFacts, ResolvedVersion } from '../../src/actions/types.js';
+} from '../../src/types';
+import { makeViewer } from '../../src/actions/types';
+import type { ActionDeps, DossierIndex, LocatedSignal, ReleaseFacts, ResolvedVersion } from '../../src/actions/types';
 
 /** Fixed evaluation instant: no test depends on the real clock. */
 export const NOW = '2026-11-11T10:00:00.000Z';

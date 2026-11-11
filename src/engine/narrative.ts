@@ -5,9 +5,9 @@ import type {
   MessageRef,
   Signal,
   Verdict,
-} from '../types.js';
-import { t } from '../i18n/index.js';
-import { listSignalCodes } from '../signals/registry.js';
+} from '../types';
+import { t } from '../i18n/index';
+import { listSignalCodes } from '../signals/registry';
 
 /**
  * Written summary of a release dossier (SPEC §8, RI-06).

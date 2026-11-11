@@ -1,4 +1,4 @@
-import type { Decision, DecisionKind, Verdict } from '../types.js';
+import type { Decision, DecisionKind, Verdict } from '../types';
 
 export interface DecisionInput {
   versionId: string;

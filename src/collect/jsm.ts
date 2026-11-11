@@ -13,7 +13,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { Incident, SourceStatus } from '../types.js';
+import type { Incident, SourceStatus } from '../types';
 import {
   asArray,
   asList,
@@ -25,7 +25,7 @@ import {
   sourceStatus,
   uniqueSorted,
   type ForgeRequest,
-} from './paging.js';
+} from './paging';
 
 /** Hard cap on retained incidents (SPEC §15, bounded collection). */
 export const MAX_INCIDENTS = 200;

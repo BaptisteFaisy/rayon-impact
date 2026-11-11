@@ -5,10 +5,10 @@ import type {
   Incident,
   JiraVersion,
   Signal,
-} from '../types.js';
-import { RECENT_INCIDENT_DAYS } from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { daysBetween, isSignalEnabled, makeSignal } from './context.js';
+} from '../types';
+import { RECENT_INCIDENT_DAYS } from '../types';
+import type { DetectionContext, Detector } from './context';
+import { daysBetween, isSignalEnabled, makeSignal } from './context';
 
 /**
  * EXP signal family: exploitation and incidents (SPEC §7).

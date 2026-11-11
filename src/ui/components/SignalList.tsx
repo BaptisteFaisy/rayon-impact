@@ -1,7 +1,7 @@
 import Lozenge from '@atlaskit/lozenge';
-import { getSignalDefinition } from '../../signals/registry.js';
-import { t } from '../../i18n/index.js';
-import type { Locale, Severity, Signal } from '../../types.js';
+import { getSignalDefinition } from '../../signals/registry';
+import { t } from '../../i18n/index';
+import type { Locale, Severity, Signal } from '../../types';
 
 /**
  * Signal list grouped by severity: observation, why it matters, proof, how to clear.

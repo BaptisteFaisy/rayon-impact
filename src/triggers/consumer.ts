@@ -5,7 +5,7 @@
  * The pipeline is injected instead of imported, so this adapter stays testable
  * on its own and `src/index.ts` wires it to the real function:
  *
- *   import { recomputeRelease } from './engine/pipeline.js';
+ *   import { recomputeRelease } from './engine/pipeline';
  *   export const handler = (event: AsyncEvent) =>
  *     onMessage(event.body as RecomputeMessage, { pipeline, recompute: recomputeRelease, logger });
  *
@@ -21,7 +21,7 @@ import type {
   RecomputeMessage,
   RecomputeRequest,
   RecomputeResult,
-} from '../ports.js';
+} from '../ports';
 
 /**
  * Exact signature of `recomputeRelease` in src/engine/pipeline.ts (written in

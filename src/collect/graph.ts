@@ -17,7 +17,7 @@
  * Rule: files < 500 lines, functions < 50 lines.
  */
 import api from '@forge/api';
-import type { DevSummary, GraphFacts, Team } from '../types.js';
+import type { DevSummary, GraphFacts, Team } from '../types';
 import {
   CollectRequestError,
   asArray,
@@ -26,7 +26,7 @@ import {
   prop,
   uniqueSorted,
   type ForgeResponseLike,
-} from './paging.js';
+} from './paging';
 
 /** Scopes this collector needs, one per object type (R5 §1.6). */
 export const GRAPH_SCOPES = {

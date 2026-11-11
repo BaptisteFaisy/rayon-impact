@@ -1,4 +1,4 @@
-import type { SqlClient, SqlParam } from './sql-client.js';
+import type { SqlClient, SqlParam } from './sql-client';
 
 /**
  * Version queries kept out of the `ReleaseStore` interface: they serve the

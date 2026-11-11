@@ -3,8 +3,8 @@ import {
   computeOutcome,
   outcomeSummary,
   type OutcomeInput,
-} from '../../src/engine/outcome.js';
-import { incident } from '../fixtures/builders.js';
+} from '../../src/engine/outcome';
+import { incident } from '../fixtures/builders';
 
 describe('engine/outcome', () => {
   const releasedAt = '2026-11-08T10:00:00.000Z';

@@ -6,8 +6,8 @@ import type {
   ImpactGraph,
   MessageRef,
   Signal,
-} from '../types.js';
-import { GRAPH_NODE_LIMIT, SEVERITY_ORDER } from '../types.js';
+} from '../types';
+import { GRAPH_NODE_LIMIT, SEVERITY_ORDER } from '../types';
 
 /**
  * Impact graph construction (RI-12) and its mandatory list equivalent

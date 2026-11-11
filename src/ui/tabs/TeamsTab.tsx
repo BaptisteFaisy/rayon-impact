@@ -1,4 +1,4 @@
-import type { ImpactedTeam, Locale } from '../../types.js';
+import type { ImpactedTeam, Locale } from '../../types';
 
 /**
  * Impacted teams tab: who is touched, through which services, and with which

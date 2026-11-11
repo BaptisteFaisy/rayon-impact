@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import type { JiraIssueLinkPayload, JiraIssuePayload } from '../../src/collect/jira-client.js';
-import { JiraReleaseCollector, MAX_ISSUES } from '../../src/collect/jira.js';
+import type { JiraIssueLinkPayload, JiraIssuePayload } from '../../src/collect/jira-client';
+import { JiraReleaseCollector, MAX_ISSUES } from '../../src/collect/jira';
 import {
   changelogAddedTo,
   changelogReopened,
@@ -11,7 +11,7 @@ import {
   mergeChangelogs,
   type FakeJiraClient,
   type FakeJiraPages,
-} from '../../src/collect/jira-fake.js';
+} from '../../src/collect/jira-fake';
 import type {
   CollectedRelease,
   GraphFacts,
@@ -19,15 +19,15 @@ import type {
   JiraIssue,
   SourceName,
   SourceStatus,
-} from '../../src/types.js';
-import { PROJECT_KEY, graphFacts, healthyDev } from '../fixtures/builders.js';
+} from '../../src/types';
+import { PROJECT_KEY, graphFacts, healthyDev } from '../fixtures/builders';
 import {
   MOB_77,
   paiementsIssues,
   paiementsPages,
   paiementsPolicy,
   paiementsRelease,
-} from '../fixtures/paiements.js';
+} from '../fixtures/paiements';
 
 /**
  * JiraReleaseCollector against the in-memory fake: no network, no Forge.

@@ -4,9 +4,9 @@ import type {
   IssueLinkRef,
   JiraIssue,
   Signal,
-} from '../../src/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { depDetectors, detectDep, resolveServiceId } from '../../src/signals/dep.js';
+} from '../../src/types';
+import type { DetectionContext } from '../../src/signals/context';
+import { depDetectors, detectDep, resolveServiceId } from '../../src/signals/dep';
 import {
   PROJECT_KEY,
   collected,
@@ -14,14 +14,14 @@ import {
   issue,
   policy,
   team,
-} from '../fixtures/builders.js';
+} from '../fixtures/builders';
 import {
   BLOCKER_OUTSIDE_VERSION,
   LINKED_OUTSIDE_ISSUES,
   MOB_77,
   paiementsPolicy,
   paiementsRelease,
-} from '../fixtures/paiements.js';
+} from '../fixtures/paiements';
 
 /**
  * Tests for the DEP signal family (SPEC §7, edge cases §16, acceptance §17.6).

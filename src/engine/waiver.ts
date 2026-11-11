@@ -4,7 +4,7 @@ import type {
   SignalCode,
   SubjectType,
   Waiver,
-} from '../types.js';
+} from '../types';
 
 export interface WaiverRequest {
   versionId: string;

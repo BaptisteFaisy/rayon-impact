@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { detectAllSignals, recomputeRelease } from '../../src/engine/pipeline.js';
-import { computeCoverage } from '../../src/engine/coverage.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
-import { InMemoryReleaseStore } from './fakes.js';
-import type { NarrativeWriter, PipelineDeps } from '../../src/ports.js';
-import type { CollectedRelease, Signal } from '../../src/types.js';
+import { detectAllSignals, recomputeRelease } from '../../src/engine/pipeline';
+import { computeCoverage } from '../../src/engine/coverage';
+import type { DetectionContext } from '../../src/signals/context';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
+import { InMemoryReleaseStore } from './fakes';
+import type { NarrativeWriter, PipelineDeps } from '../../src/ports';
+import type { CollectedRelease, Signal } from '../../src/types';
 
 /**
  * End-to-end of the recompute pipeline: collect, detect, decide, write, store.

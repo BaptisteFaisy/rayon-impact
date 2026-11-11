@@ -11,7 +11,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { SourceName, SourceState, SourceStatus } from '../types.js';
+import type { SourceName, SourceState, SourceStatus } from '../types';
 
 /** What the collectors read from a Forge API response (nothing more). */
 export interface ForgeResponseLike {

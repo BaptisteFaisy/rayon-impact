@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { CollectedRelease } from '../../src/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { detectExp, expDetectors, impactedServices } from '../../src/signals/exp.js';
-import { collected, incident, issue, version } from '../fixtures/builders.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
+import type { CollectedRelease } from '../../src/types';
+import type { DetectionContext } from '../../src/signals/context';
+import { detectExp, expDetectors, impactedServices } from '../../src/signals/exp';
+import { collected, incident, issue, version } from '../fixtures/builders';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
 
 /**
  * EXP family tests (SPEC §7, §16, §17.2).

@@ -18,7 +18,7 @@ import type {
   JiraRemoteLinkPayload,
   JiraSearchPage,
   JiraVersionPayload,
-} from './jira-client.js';
+} from './jira-client';
 
 /** Default project key; mirrors tests/fixtures/builders.PROJECT_KEY. */
 const DEFAULT_PROJECT_KEY = 'PAY';

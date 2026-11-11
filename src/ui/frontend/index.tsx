@@ -1,9 +1,9 @@
 import { useProductContext } from '@forge/react';
 import ForgeReconciler from '@forge/react';
-import { ProjectPage } from '../projectPage.js';
-import { IssueContext } from '../issueContext.js';
-import { SettingsPage } from '../settingsPage.js';
-import { DashboardGadget } from '../gadget.js';
+import { ProjectPage } from '../projectPage';
+import { IssueContext } from '../issueContext';
+import { SettingsPage } from '../settingsPage';
+import { DashboardGadget } from '../gadget';
 
 /**
  * Single UI entry point for the four Forge modules (SPEC §11).

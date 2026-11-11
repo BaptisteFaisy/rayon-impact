@@ -8,12 +8,12 @@ import {
   type JiraEventLike,
   type RecomputeTarget,
   type TriggerDeps,
-} from '../../src/triggers/events.js';
+} from '../../src/triggers/events';
 import type {
   LogLevel,
   Logger,
   RecomputeMessage,
-} from '../../src/ports.js';
+} from '../../src/ports';
 
 const START = '2026-11-11T10:00:00.000Z';
 const AFTER_MINUTE = '2026-11-11T10:01:00.000Z';

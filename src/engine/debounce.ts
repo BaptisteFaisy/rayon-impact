@@ -8,7 +8,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { RecomputeMessage } from '../ports.js';
+import type { RecomputeMessage } from '../ports';
 
 /** Minimum gap between two queued recomputes of the same version (SPEC §12). */
 export const MIN_RECOMPUTE_INTERVAL_SECONDS = 60;

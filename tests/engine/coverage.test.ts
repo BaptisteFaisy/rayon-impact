@@ -3,22 +3,22 @@ import {
   applyMinorSampling,
   computeCoverage,
   MINOR_SIGNAL_CAP,
-} from '../../src/engine/coverage.js';
-import { t } from '../../src/i18n/index.js';
+} from '../../src/engine/coverage';
+import { t } from '../../src/i18n/index';
 import {
   ISSUE_SAMPLE_THRESHOLD,
   type Severity,
   type Signal,
   type SignalCode,
-} from '../../src/types.js';
+} from '../../src/types';
 import {
   collected,
   healthyDev,
   issue,
   okSources,
   unknownDev,
-} from '../fixtures/builders.js';
-import { paiementsRelease } from '../fixtures/paiements.js';
+} from '../fixtures/builders';
+import { paiementsRelease } from '../fixtures/paiements';
 
 function makeDummySignal(
   index: number,

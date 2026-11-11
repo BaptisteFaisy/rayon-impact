@@ -5,7 +5,7 @@ import type {
   NarrativeWriter,
   ReleaseCollector,
   ReleaseStore,
-} from '../../src/ports.js';
+} from '../../src/ports';
 import type {
   CollectedRelease,
   Decision,
@@ -15,8 +15,8 @@ import type {
   Signal,
   Snapshot,
   Waiver,
-} from '../../src/types.js';
-import { paiementsRelease } from '../fixtures/paiements.js';
+} from '../../src/types';
+import { paiementsRelease } from '../fixtures/paiements';
 
 /**
  * Reusable in-memory doubles for the pipeline tests (no I/O, no network).

@@ -1,7 +1,7 @@
-import type { JiraIssue, Signal } from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { isSignalEnabled, makeSignal } from './context.js';
-import { makeIssueEvidence } from './comp.js';
+import type { JiraIssue, Signal } from '../types';
+import type { DetectionContext, Detector } from './context';
+import { isSignalEnabled, makeSignal } from './context';
+import { makeIssueEvidence } from './comp';
 
 /**
  * QUAL signal family: code quality of the release's tickets (SPEC §7).

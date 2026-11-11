@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import Tabs, { Tab, TabList, TabPanel } from '@atlaskit/tabs';
 import { invoke } from '@forge/bridge';
-import { useLocale, useProject, useScreen } from './hooks.js';
-import { VerdictBanner } from './components/VerdictBanner.js';
-import { CoverageMeter } from './components/CoverageMeter.js';
-import { WaiverDialog } from './components/WaiverDialog.js';
-import { GraphView } from './components/GraphView.js';
-import { SignalsTab } from './tabs/SignalsTab.js';
-import { TeamsTab } from './tabs/TeamsTab.js';
-import { WaiversTab } from './tabs/WaiversTab.js';
-import { HistoryTab } from './tabs/HistoryTab.js';
-import type { ImpactGraph, ImpactedTeam, Locale, ReleaseDossier, Signal } from '../types.js';
+import { useLocale, useProject, useScreen } from './hooks';
+import { VerdictBanner } from './components/VerdictBanner';
+import { CoverageMeter } from './components/CoverageMeter';
+import { WaiverDialog } from './components/WaiverDialog';
+import { GraphView } from './components/GraphView';
+import { SignalsTab } from './tabs/SignalsTab';
+import { TeamsTab } from './tabs/TeamsTab';
+import { WaiversTab } from './tabs/WaiversTab';
+import { HistoryTab } from './tabs/HistoryTab';
+import type { ImpactGraph, ImpactedTeam, Locale, ReleaseDossier, Signal } from '../types';
 
 /**
  * The main screen: version picker, verdict, coverage, written summary, then the

@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Decision, Outcome, Signal, Waiver } from '../../src/types.js';
+import type { Decision, Outcome, Signal, Waiver } from '../../src/types';
 import {
   ForgeReleaseStore,
   MAX_LIST_LIMIT,
   MAX_SIGNALS_PER_SNAPSHOT,
   clampLimit,
-} from '../../src/db/repo.js';
-import type { DecisionRow, OutcomeRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from '../../src/db/rows.js';
+} from '../../src/db/repo';
+import type { DecisionRow, OutcomeRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from '../../src/db/rows';
 import {
   decisionToRow,
   outcomeToRow,
@@ -14,9 +14,9 @@ import {
   signalToRow,
   snapshotToRow,
   waiverToRow,
-} from '../../src/db/mapping.js';
-import { policy, snapshot } from '../fixtures/builders.js';
-import { FakeSql } from './fake-sql.js';
+} from '../../src/db/mapping';
+import { policy, snapshot } from '../fixtures/builders';
+import { FakeSql } from './fake-sql';
 
 /* ------------------------------------------------------------- fixtures */
 

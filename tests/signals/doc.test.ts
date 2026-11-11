@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { CollectedRelease, RemoteLink } from '../../src/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { detectDoc, docDetectors, linkedPages } from '../../src/signals/doc.js';
-import { collected, issue } from '../fixtures/builders.js';
-import { paiementsPages, paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
+import type { CollectedRelease, RemoteLink } from '../../src/types';
+import type { DetectionContext } from '../../src/signals/context';
+import { detectDoc, docDetectors, linkedPages } from '../../src/signals/doc';
+import { collected, issue } from '../fixtures/builders';
+import { paiementsPages, paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
 
 /**
  * DOC family tests (SPEC §7, §15, §16).

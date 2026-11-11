@@ -1,6 +1,6 @@
-import { useLocale, useProject, useScreen } from './hooks.js';
-import { VerdictBanner } from './components/VerdictBanner.js';
-import type { Confidence, Locale, Verdict } from '../types.js';
+import { useLocale, useProject, useScreen } from './hooks';
+import { VerdictBanner } from './components/VerdictBanner';
+import type { Confidence, Locale, Verdict } from '../types';
 
 /**
  * Dashboard gadget: the versions of the next 14 days with their verdict

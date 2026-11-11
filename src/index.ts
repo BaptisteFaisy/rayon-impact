@@ -16,27 +16,27 @@
 import Resolver from '@forge/resolver';
 import { Queue } from '@forge/events';
 import api from '@forge/api';
-import { createStore } from './db/repo.js';
-import { createJiraClient } from './collect/jira-client.js';
-import { createJsmClient } from './collect/jsm.js';
-import { createConfluenceClient } from './collect/confluence.js';
-import { createTeamworkGraphRunner } from './collect/graph.js';
-import { createReleaseCollector } from './collect/collector.js';
-import { createLlmNarrativeWriter } from './collect/llm.js';
-import { listOpenVersions, listReleasedVersions, listVersionsForIssue } from './db/queries.js';
-import { createForgeSqlClient } from './db/sql-client.js';
-import type { SqlClient } from './db/sql-client.js';
-import { ACTION_KEYS, runAction } from './actions/registry.js';
-import { ActionError, makeViewer } from './actions/types.js';
-import type { ActionDeps, DossierIndex } from './actions/types.js';
-import { recomputeRelease, resolvePolicy } from './engine/pipeline.js';
-import { buildImpactGraph } from './engine/graph.js';
-import { createMemoryGate, onJiraEvent } from './triggers/events.js';
-import type { JiraEventLike } from './triggers/events.js';
-import { onScheduled as runScheduled } from './triggers/scheduled.js';
-import type { ScheduledPayload, ScheduledVersionSource } from './triggers/scheduled.js';
-import { onMessage as runConsumer } from './triggers/consumer.js';
-import type { RecomputeFn } from './triggers/consumer.js';
+import { createStore } from './db/repo';
+import { createJiraClient } from './collect/jira-client';
+import { createJsmClient } from './collect/jsm';
+import { createConfluenceClient } from './collect/confluence';
+import { createTeamworkGraphRunner } from './collect/graph';
+import { createReleaseCollector } from './collect/collector';
+import { createLlmNarrativeWriter } from './collect/llm';
+import { listOpenVersions, listReleasedVersions, listVersionsForIssue } from './db/queries';
+import { createForgeSqlClient } from './db/sql-client';
+import type { SqlClient } from './db/sql-client';
+import { ACTION_KEYS, runAction } from './actions/registry';
+import { ActionError, makeViewer } from './actions/types';
+import type { ActionDeps, DossierIndex } from './actions/types';
+import { recomputeRelease, resolvePolicy } from './engine/pipeline';
+import { buildImpactGraph } from './engine/graph';
+import { createMemoryGate, onJiraEvent } from './triggers/events';
+import type { JiraEventLike } from './triggers/events';
+import { onScheduled as runScheduled } from './triggers/scheduled';
+import type { ScheduledPayload, ScheduledVersionSource } from './triggers/scheduled';
+import { onMessage as runConsumer } from './triggers/consumer';
+import type { RecomputeFn } from './triggers/consumer';
 import type {
   Clock,
   JobQueue,
@@ -44,9 +44,9 @@ import type {
   PipelineDeps,
   RecomputeMessage,
   ReleaseStore,
-} from './ports.js';
-import type { Policy } from './types.js';
-import type { ForgeRequest } from './collect/paging.js';
+} from './ports';
+import type { Policy } from './types';
+import type { ForgeRequest } from './collect/paging';
 
 /* ------------------------------------------------------------ primitives */
 

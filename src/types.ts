@@ -4,5 +4,5 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-export * from './types/core.js';
-export * from './types/collected.js';
+export * from './types/core';
+export * from './types/collected';

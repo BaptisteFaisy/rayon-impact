@@ -1,7 +1,7 @@
-import type { Evidence, GraphFacts, OutcomeIncident, Signal } from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { isSignalEnabled, makeSignal } from './context.js';
-import { impactedServices, serviceName } from './exp.js';
+import type { Evidence, GraphFacts, OutcomeIncident, Signal } from '../types';
+import type { DetectionContext, Detector } from './context';
+import { isSignalEnabled, makeSignal } from './context';
+import { impactedServices, serviceName } from './exp';
 
 /**
  * Vision signals (lot C): HIST-01 and OBJ-01.

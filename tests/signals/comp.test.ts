@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { CollectedRelease, JiraIssue, Signal } from '../../src/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { compDetectors, detectComp, issueUrl } from '../../src/signals/comp.js';
+import type { CollectedRelease, JiraIssue, Signal } from '../../src/types';
+import type { DetectionContext } from '../../src/signals/context';
+import { compDetectors, detectComp, issueUrl } from '../../src/signals/comp';
 import {
   collected,
   healthyDev,
   issue,
   policy,
   unknownDev,
-} from '../fixtures/builders.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
+} from '../fixtures/builders';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
 
 /**
  * Tests for the COMP signal family (SPEC §7, edge cases §16, acceptance §17.1).

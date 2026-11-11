@@ -6,10 +6,10 @@ import {
   listLiveWaivers,
   validateWaiverRequest,
   type WaiverRequest,
-} from '../../src/engine/waiver.js';
-import { makeSignal } from '../../src/signals/context.js';
-import { issue, policy } from '../fixtures/builders.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
+} from '../../src/engine/waiver';
+import { makeSignal } from '../../src/signals/context';
+import { issue, policy } from '../fixtures/builders';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
 
 describe('engine/waiver', () => {
   const defaultPol = policy({

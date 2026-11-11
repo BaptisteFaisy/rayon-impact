@@ -7,7 +7,7 @@ import type {
   Signal,
   Simulation,
   VerdictResult,
-} from '../types.js';
+} from '../types';
 
 /** Maximum subset size for minimal removal search (SPEC §8 & RI-13). */
 export const MAX_REMOVAL_SET = 3;

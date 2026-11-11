@@ -8,10 +8,10 @@ import type {
   ServiceMapEntry,
   Signal,
   Team,
-} from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { isSignalEnabled, makeSignal } from './context.js';
-import { DEFAULT_JIRA_DOMAIN, makeIssueEvidence } from './comp.js';
+} from '../types';
+import type { DetectionContext, Detector } from './context';
+import { isSignalEnabled, makeSignal } from './context';
+import { DEFAULT_JIRA_DOMAIN, makeIssueEvidence } from './comp';
 
 /**
  * DEP signal family: dependencies around the release (SPEC §7).

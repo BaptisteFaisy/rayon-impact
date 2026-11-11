@@ -6,7 +6,7 @@ import type {
   VerdictResult,
   SeverityCounts,
   Condition,
-} from '../../src/types.js';
+} from '../../src/types';
 
 /**
  * Stub local minimal pour computeVerdict conforme à SPEC §8 (< 60 lignes).

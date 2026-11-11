@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import SectionMessage from '@atlaskit/section-message';
-import { WaiverFields } from './WaiverFields.js';
-import type { Locale, Signal } from '../../types.js';
+import { WaiverFields } from './WaiverFields';
+import type { Locale, Signal } from '../../types';
 
 /**
  * Waiver dialog: reason is mandatory, expiration delay is explicit (RI-07).

@@ -1,6 +1,6 @@
-import { useIssue, useLocale, useProject, useScreen } from './hooks.js';
-import { t } from '../i18n/index.js';
-import type { Locale, ReleaseDossier } from '../types.js';
+import { useIssue, useLocale, useProject, useScreen } from './hooks';
+import { t } from '../i18n/index';
+import type { Locale, ReleaseDossier } from '../types';
 
 /**
  * The issue panel: one line telling the developer whether this ticket holds a

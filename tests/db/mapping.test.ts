@@ -5,7 +5,7 @@ import type {
   Signal,
   Snapshot,
   Waiver,
-} from '../../src/types.js';
+} from '../../src/types';
 import {
   DEFAULT_COUNTS,
   DEFAULT_COVERAGE,
@@ -25,14 +25,14 @@ import {
   signalToRow,
   snapshotToRow,
   waiverToRow,
-} from '../../src/db/mapping.js';
+} from '../../src/db/mapping';
 import type {
   DecisionRow,
   OutcomeRow,
   ReleaseSnapshotRow,
   SignalRow,
-} from '../../src/db/mapping.js';
-import { policy, snapshot } from '../fixtures/builders.js';
+} from '../../src/db/mapping';
+import { policy, snapshot } from '../fixtures/builders';
 
 /* ------------------------------------------------------------- fixtures */
 
