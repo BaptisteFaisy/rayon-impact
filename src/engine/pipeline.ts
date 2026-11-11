@@ -15,6 +15,7 @@ import {
   verifyNarrative,
 } from './narrative';
 import { computeOutcome } from './outcome';
+import { defaultPolicyOverrides } from '../config';
 import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports';
 import { OUTCOME_WINDOW_HOURS } from '../types';
 import type {
@@ -76,6 +77,7 @@ function defaultPolicy(projectId: string): Policy {
     serviceMap: [],
     observationMode: false,
     defaultWaiverHours: 48,
+    ...defaultPolicyOverrides(),
   };
 }
 

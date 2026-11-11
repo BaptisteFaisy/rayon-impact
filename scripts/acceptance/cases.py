@@ -243,15 +243,28 @@ def case_r8(ctx):
     if not entries:
         return CaseResult(ECHEC, "aucun dossier sauvé pour ce projet : rien à vérifier.")
     violations = []
+    legacy = 0
+    checked = 0
     for entry in entries:
         cited, allowed = cited_keys_of(entry)
+        # Dossiers antérieurs à la migration v003 : la table `signal` avait `id`
+        # comme clé primaire, chaque recalcul écrasait l'historique. Aucun signal
+        # n'est lisible pour eux — les compter à part plutôt que les faire passer
+        # pour des violations (ou, pire, les ignorer en silence).
+        if not allowed:
+            legacy += 1
+            continue
+        checked += 1
         extra = sorted(cited - allowed)
         if extra:
             violations.append(f"{entry['snapshot'].get('versionName')}/{entry['snapshot']['id'][:8]}: {extra}")
     if violations:
         return CaseResult(ECHEC, "synthèse citant des tickets hors signaux : " + "; ".join(violations))
-    note = "" if len(entries) >= 20 else f" (corpus {len(entries)} < 20 : les 20 dossiers d'essai restent à constituer)"
-    return CaseResult(OK, f"{len(entries)} dossier(s) vérifié(s), aucune clé hors signaux{note}.")
+    if checked == 0:
+        return CaseResult(ECHEC, f"aucun dossier vérifiable ({legacy} sans signaux enregistrés).")
+    note = "" if checked >= 20 else f" (corpus {checked} < 20 : les 20 dossiers d'essai restent à constituer)"
+    legacy_note = f", {legacy} antérieur(s) à la migration v003 non vérifiable(s)" if legacy else ""
+    return CaseResult(OK, f"{checked} dossier(s) vérifié(s), aucune clé hors signaux{legacy_note}{note}.")
 
 
 def case_r7(ctx):
