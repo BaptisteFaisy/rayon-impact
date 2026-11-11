@@ -1,0 +1,31 @@
+{
+  "name": "rayon-impact",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Release Impact Radius - Forge app for Jira (Codegeist 2026)",
+  "type": "module",
+  "scripts": {
+    "lint": "forge lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@forge/manifest": "^1.5.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.0",
+    "react": "^18.3.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  },
+  "dependencies": {
+    "@forge/api": "^8.5.0",
+    "@forge/events": "^2.0.0",
+    "@forge/llm": "^1.0.0",
+    "@forge/react": "^10.0.0",
+    "@forge/resolver": "^1.6.0"
+  }
+}
