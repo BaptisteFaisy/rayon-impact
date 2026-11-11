@@ -38,33 +38,45 @@ jobs:
       - name: Nettoyage du workspace (node_modules conservé)
         shell: bash
         run: |
-          git clean -ffdx -e /node_modules -e /.npm-state -e /dist -e /build
+          git clean -ffdx -e /node_modules -e /dist -e /build
           # Un run précédent peut avoir modifié un fichier SUIVI (`npm install`
           # réécrit `package-lock.json`) : sans cette restauration, l'empreinte
           # comparée au marqueur n'est plus celle du commit et la CI réinstalle
           # à chaque run — donc dépasse le budget de 5 minutes.
           git checkout -- .
 
-      - name: Dépendances (cache npm partagé, installation si le lock a changé)
+      # Le marqueur et le cache vivent HORS du workspace : un checkout frais
+      # (branche spéculative de la file Mergify) vide le dossier de travail, ce
+      # qui faisait repartir un `npm ci` de 5 min à chaque run — donc un job tué
+      # par son propre `timeout-minutes: 5`. La restauration par liens durs
+      # prend quelques secondes.
+      - name: Dépendances (cache hors workspace, installation si le lock a changé)
         shell: bash
         run: |
           echo "$HOME/bin" >> "$GITHUB_PATH"
           export PATH="$HOME/bin:$PATH"
           export NPM_CONFIG_CACHE="$HOME/.npm-ci-cache"
-          # Le marqueur vit HORS de node_modules : `npm ci` efface ce dossier.
-          mkdir -p .npm-state
-          MARKER=.npm-state/lock-hash
+          STATE="$HOME/.cache/rayon-impact-ci"
+          KEY="$(printf '%s' "$PWD" | sha256sum | cut -c1-12)"
+          mkdir -p "$STATE"
+          MARKER="$STATE/$KEY.lock-hash"
+          CACHE="$STATE/$KEY.node_modules"
           LOCK_HASH="$(sha256sum package-lock.json | cut -d' ' -f1)"
           MARKER_HASH="$(cat "$MARKER" 2>/dev/null || echo absent)"
+          if [ ! -d node_modules ] && [ -d "$CACHE" ]; then
+            cp -al "$CACHE" node_modules 2>/dev/null || cp -a "$CACHE" node_modules
+            echo "node_modules restaure depuis le cache"
+          fi
           MODULES="$([ -d node_modules ] && echo present || echo absent)"
-          # Diagnostic : sans ces trois valeurs, un run lent est incompréhensible.
-          echo "diag: pwd=$PWD lock=$LOCK_HASH marqueur=$MARKER_HASH node_modules=$MODULES"
+          echo "diag: lock=$LOCK_HASH marqueur=$MARKER_HASH node_modules=$MODULES"
           if [ "$MODULES" = "present" ] && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
             echo "node_modules deja a jour - installation sautee"
           else
             echo "installation des dependances..."
             npm ci --prefer-offline --no-audit --no-fund
             printf '%s' "$LOCK_HASH" > "$MARKER"
+            rm -rf "$CACHE"
+            cp -al node_modules "$CACHE" 2>/dev/null || true
           fi
 
       - name: Types (tsc --noEmit)
