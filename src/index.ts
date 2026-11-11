@@ -31,8 +31,9 @@ import type { SqlClient } from './db/sql-client';
 import { ACTION_KEYS, runAction } from './actions/registry';
 import { ActionError, makeViewer } from './actions/types';
 import type { ActionDeps, DossierIndex } from './actions/types';
-import { recomputeRelease, resolvePolicy } from './engine/pipeline';
+import { recomputeOutcome, recomputeRelease, resolvePolicy } from './engine/pipeline';
 import { buildImpactGraph } from './engine/graph';
+import { diffSnapshots } from './engine/diff';
 import { createMemoryGate, onJiraEvent } from './triggers/events';
 import type { JiraEventLike } from './triggers/events';
 import { onScheduled as runScheduled } from './triggers/scheduled';
@@ -185,6 +186,24 @@ const SCREENS: Record<string, (payload: ForgePayload, deps: ActionDeps) => Promi
     const dossier = await deps.store.getDossier(versionId);
     if (!cached || !dossier) return null;
     return buildImpactGraph(cached.release, dossier.signals);
+  },
+  /** RI-14: what changed between the last two dossiers of a version. */
+  'screen.projectDiff': async (payload, deps) => {
+    const projectId = required(payload, 'projectId');
+    const versionId = required(payload, 'versionId');
+    const snapshots = (await deps.store.listSnapshots(projectId, 10)).filter(
+      (snapshot) => snapshot.versionId === versionId,
+    );
+    if (snapshots.length < 2) return null;
+    const [current, previous] = snapshots;
+    const [currentSignals, previousSignals] = await Promise.all([
+      deps.store.getSignals(current.id),
+      deps.store.getSignals(previous.id),
+    ]);
+    return diffSnapshots(
+      { snapshot: previous, signals: previousSignals },
+      { snapshot: current, signals: currentSignals },
+    );
   },
   /** RI-01: the versions of a project with their current verdict. */
   'screen.projectVersions': async (payload, deps) => {
@@ -403,7 +422,14 @@ function readMessage(event: unknown): RecomputeMessage {
 export async function onMessage(event: unknown): Promise<unknown> {
   const message = readMessage(event);
   const deps = await pipelineDeps(message.projectId, null);
-  const recompute: RecomputeFn = async (pipeline, request) =>
-    recomputeRelease(pipeline, request);
+  const recompute: RecomputeFn = async (pipeline, request) => {
+    const result = await recomputeRelease(pipeline, request);
+    // Le bilan 72 h suit le recalcul : demande explicitement (`reason:
+    // 'outcome'`) ou des que la version est publiée (RI-15).
+    if (request.reason === 'outcome' || result.snapshot.versionReleased) {
+      await recomputeOutcome(pipeline, request);
+    }
+    return result;
+  };
   return runConsumer(message, { pipeline: deps, recompute, logger });
 }
