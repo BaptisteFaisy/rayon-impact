@@ -16,6 +16,7 @@ import {
 } from './narrative';
 import { computeOutcome } from './outcome';
 import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports';
+import { OUTCOME_WINDOW_HOURS } from '../types';
 import type {
   Outcome,
   Policy,
@@ -241,22 +242,67 @@ export async function recomputeOutcome(
   request: RecomputeRequest,
 ): Promise<Outcome | null> {
   const now = deps.clock.now();
-  const outcome = await deps.store.getOutcome(request.versionId);
-  if (outcome) return outcome;
-  const dossier = await deps.store.getDossier(request.versionId);
-  if (!dossier) return null;
-  const releasedAt = dossier.snapshot.computedAt;
-  const services = dossier.signals
-    .filter((signal) => signal.subjectType === 'service')
-    .map((signal) => signal.subjectId);
+  const existing = await deps.store.getOutcome(request.versionId);
+  if (existing) return existing;
+
+  // La date de publication vient de la version elle-meme, pas du dossier : un
+  // dossier est recalcule a chaque evenement, sa date n'est pas celle du deploy.
+  const cached = await deps.store.getCollection(request.versionId);
+  if (!cached) {
+    deps.logger.log('warn', 'bilan 72 h impossible : aucune collecte en cache', {
+      versionId: request.versionId,
+    });
+    return null;
+  }
+  const release = cached.release;
+  const releasedAt = release.version.releaseDate;
+  if (!release.version.released || !releasedAt) {
+    deps.logger.log('info', 'bilan 72 h ignore : version non publiee', {
+      versionId: request.versionId,
+    });
+    return null;
+  }
+
+  const services = [
+    ...new Set(
+      release.issues
+        .map((issue) => issue.serviceId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    ),
+  ];
+  const releasedMs = new Date(releasedAt).getTime();
+  const windowStart = new Date(releasedMs).toISOString();
+  const windowEnd = new Date(releasedMs + OUTCOME_WINDOW_HOURS * 3_600_000).toISOString();
+
+  // Sans source d'incidents, pas de bilan : un bilan vide se lirait comme
+  // « tout va bien ». On le dit, on ne l'ecrit pas.
+  const collect = deps.collector.collectIncidents;
+  if (!collect) {
+    deps.logger.log('warn', "bilan 72 h impossible : aucune source d'incidents", {
+      versionId: request.versionId,
+    });
+    return null;
+  }
+  const incidents = await collect(services, windowStart, windowEnd);
   const computed = computeOutcome({
     versionId: request.versionId,
     releasedAt,
-    incidents: [],
+    incidents,
     servicesImpacted: services,
+    notes:
+      incidents.length === 0
+        ? 'Aucun incident cree sur les services touches dans les 72 h suivant la publication.'
+        : `${incidents.length} incident(s) cree(s) dans les 72 h suivant la publication.`,
     now,
   });
-  if (!computed) return null;
+  if (!computed) {
+    deps.logger.log('info', 'bilan 72 h pas encore echu', { versionId: request.versionId });
+    return null;
+  }
   await deps.store.saveOutcome(computed);
+  deps.logger.log('info', 'bilan 72 h calcule', {
+    versionId: request.versionId,
+    incidents: computed.incidents.length,
+  });
   return computed;
 }

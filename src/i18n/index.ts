@@ -147,7 +147,24 @@ export const DICTIONARY_EN: Record<string, string> = {
   'evidence.restricted': '1 hidden item (restricted access)',
   'evidence.view': 'View proof',
   'simulation.bestSet': 'Removing {count} ticket(s) ({keys}) lifts the NO-GO verdict.',
+  // Simulation (RI-13) et differences (RI-14) - ajoutees le 11/11/2026
+  'simulation.run': 'Simulate without {keys}',
+  'simulation.runMinimal': 'Remove {count} ticket(s) to lift the no-go',
+  'simulation.dropped': '{count} signal(s) dropped',
+  'simulation.unknownKeys': 'These keys are not in the release and were ignored: {keys}',
+  'simulation.minimal': 'Removing {keys} lifts the no-go.',
+  'simulation.minimalUnproven': 'Removing {keys} lifts the no-go (smallest set found, not proven minimal).',
+  'simulation.simulations': '{count} simulation(s)',
+  'simulation.disclaimer': 'Simulation only: nothing is changed in Jira.',
+  'diff.title': 'Since the last dossier',
+  'diff.first': 'Only one dossier so far: nothing to compare yet.',
+  'diff.none': 'No change since the last dossier.',
+  'diff.added': 'New signals',
+  'diff.cleared': 'Cleared signals',
+  'diff.severity': 'Severity changed',
+
   'simulation.noSolution': 'No subset of tickets removes all blocking signals (check version-level freezes).',
+
 };
 
 export const DICTIONARY_FR: Record<string, string> = {
@@ -274,6 +291,22 @@ export const DICTIONARY_FR: Record<string, string> = {
   'evidence.view': 'Voir la preuve',
   'simulation.bestSet': 'Retirer {count} ticket(s) ({keys}) permet de quitter le NO-GO.',
   'simulation.noSolution': 'Aucun sous-ensemble de tickets ne lève le no-go (vérifier les gels de calendrier).',
+  // Simulation (RI-13) et differences (RI-14) - ajoutees le 11/11/2026
+  'simulation.run': 'Simuler sans {keys}',
+  'simulation.runMinimal': 'Retirer {count} ticket(s) pour lever le no-go',
+  'simulation.dropped': '{count} signal(s) retiré(s)',
+  'simulation.unknownKeys': 'Ces clés ne sont pas dans la version et ont été ignorées : {keys}',
+  'simulation.minimal': 'Retirer {keys} permet de lever le no-go.',
+  'simulation.minimalUnproven': 'Retirer {keys} permet de lever le no-go (plus petit ensemble trouvé, minimalité non prouvée).',
+  'simulation.simulations': '{count} simulation(s)',
+  'simulation.disclaimer': 'Simulation uniquement : rien n’est modifié dans Jira.',
+  'diff.title': 'Depuis le dernier dossier',
+  'diff.first': 'Un seul dossier pour l’instant : rien à comparer.',
+  'diff.none': 'Aucun changement depuis le dernier dossier.',
+  'diff.added': 'Nouveaux signaux',
+  'diff.cleared': 'Signaux levés',
+  'diff.severity': 'Gravité modifiée',
+
 };
 
 const DICTIONARIES: Record<Locale, Record<string, string>> = {
