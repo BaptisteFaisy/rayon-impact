@@ -265,6 +265,18 @@ export interface SimulateWithoutOutput {
   droppedSignalCount: number;
   droppedSignalIds: string[];
   conditions: Condition[];
+  /**
+   * Smallest set of tickets whose removal lifts the no-go (RI-13), or null when
+   * the verdict is not no-go. Contract shared by the action and the UI.
+   */
+  minimalRemoval: MinimalRemovalView | null;
+}
+
+export interface MinimalRemovalView {
+  issueKeys: string[];
+  simulationsRun: number;
+  /** False when the bounded search stopped before proving minimality. */
+  provenMinimal: boolean;
 }
 
 export type RequestWaiverOutput =

@@ -10,7 +10,11 @@
  * Rule: files < 500 lines, functions < 50 lines.
  */
 import { computeVerdict } from '../engine/verdict';
-import { signalsWithoutIssues, simulateWithout as simulateVerdict } from '../engine/simulate';
+import {
+  minimalRemovalSet,
+  signalsWithoutIssues,
+  simulateWithout as simulateVerdict,
+} from '../engine/simulate';
 import { grantWaiver, validateWaiverRequest, type WaiverRequest } from '../engine/waiver';
 import type { Policy, Viewer } from '../types';
 import { requireDossier, requirePolicy } from './release';
@@ -63,6 +67,18 @@ export async function simulateWithout(
   const remaining = signalsWithoutIssues(dossier.signals, removed, facts.release);
   const remainingIds = new Set(remaining.map((signal) => signal.id));
   const dropped = dossier.signals.filter((signal) => !remainingIds.has(signal.id));
+  // RI-13 : le plus petit ensemble à retirer pour quitter le no-go. Calculé
+  // seulement quand l'avis courant est no-go, sinon il n'y a rien à lever.
+  const minimal =
+    dossier.snapshot.verdict === 'no-go'
+      ? minimalRemovalSet({
+          signals: dossier.signals,
+          coverage,
+          release: facts.release,
+          verdict: computeVerdict,
+        })
+      : null;
+
   deps.logger.log('info', 'action.simulate-without', {
     versionId: input.versionId,
     removed: removed.length,
@@ -83,6 +99,13 @@ export async function simulateWithout(
     droppedSignalCount: simulation.droppedSignalCount,
     droppedSignalIds: dropped.map((signal) => signal.id),
     conditions: simulation.result.conditions,
+    minimalRemoval: minimal
+      ? {
+          issueKeys: minimal.issueKeys,
+          simulationsRun: minimal.simulationsRun,
+          provenMinimal: minimal.provenMinimal,
+        }
+      : null,
   };
 }
 
