@@ -4,7 +4,7 @@ import type {
   Snapshot,
   SnapshotDiff,
   Verdict,
-} from '../types.js';
+} from '../types';
 
 export interface SnapshotInput {
   snapshot: Snapshot;

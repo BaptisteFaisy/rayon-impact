@@ -9,8 +9,8 @@ import type {
   Waiver,
   MessageRef,
   Evidence,
-} from '../types.js';
-import { getSignalDefinition } from './registry.js';
+} from '../types';
+import { getSignalDefinition } from './registry';
 
 /**
  * Detection context shared by every signal detector.

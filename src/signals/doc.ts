@@ -1,7 +1,7 @@
-import type { ConfluencePage, Evidence, Signal } from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { isSignalEnabled, makeSignal } from './context.js';
-import { isoDay } from './exp.js';
+import type { ConfluencePage, Evidence, Signal } from '../types';
+import type { DetectionContext, Detector } from './context';
+import { isSignalEnabled, makeSignal } from './context';
+import { isoDay } from './exp';
 
 /**
  * DOC signal family: documentation (SPEC §7).

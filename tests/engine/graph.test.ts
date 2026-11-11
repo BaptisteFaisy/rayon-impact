@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import type { GraphNodeKind, Signal, SignalCode, SubjectType } from '../../src/types.js';
-import { GRAPH_NODE_LIMIT } from '../../src/types.js';
-import { buildImpactGraph, countGraphNodes, graphToListView, nodeId } from '../../src/engine/graph.js';
-import { collected, issue, okSources, page, version } from '../fixtures/builders.js';
-import { paiementsIncidents, paiementsRelease } from '../fixtures/paiements.js';
+import type { GraphNodeKind, Signal, SignalCode, SubjectType } from '../../src/types';
+import { GRAPH_NODE_LIMIT } from '../../src/types';
+import { buildImpactGraph, countGraphNodes, graphToListView, nodeId } from '../../src/engine/graph';
+import { collected, issue, okSources, page, version } from '../fixtures/builders';
+import { paiementsIncidents, paiementsRelease } from '../fixtures/paiements';
 
 /**
  * RI-12 impact graph + SPEC §11 list equivalent.

@@ -19,8 +19,8 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { GraphFacts, Incident, JiraIssue, Policy, ServiceMapEntry } from '../types.js';
-import { resolveServiceId } from '../signals/dep.js';
+import type { GraphFacts, Incident, JiraIssue, Policy, ServiceMapEntry } from '../types';
+import { resolveServiceId } from '../signals/dep';
 
 export interface ResolvedService {
   /** `null` when no source knows the service; coverage reports it. */

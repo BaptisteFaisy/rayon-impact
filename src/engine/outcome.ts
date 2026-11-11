@@ -5,7 +5,7 @@ import {
   type Outcome,
   type OutcomeIncident,
   type Severity,
-} from '../types.js';
+} from '../types';
 
 export interface OutcomeInput {
   versionId: string;

@@ -30,16 +30,16 @@ import type {
   SubjectType,
   Verdict,
   Waiver,
-} from '../types.js';
-import { SEVERITY_ORDER } from '../types.js';
-import { listSignalCodes } from '../signals/registry.js';
+} from '../types';
+import { SEVERITY_ORDER } from '../types';
+import { listSignalCodes } from '../signals/registry';
 import type {
   DecisionRow,
   OutcomeRow,
   ReleaseSnapshotRow,
   SignalRow,
   WaiverRow,
-} from './rows.js';
+} from './rows';
 import {
   asArray,
   fromSqlBoolean,
@@ -57,7 +57,7 @@ import {
   text,
   toSqlBoolean,
   toSqlTimestamp,
-} from './rows.js';
+} from './rows';
 
 /** The scalar helpers are part of the mapping surface: one import for callers. */
 export {
@@ -68,8 +68,8 @@ export {
   parseJson,
   toSqlBoolean,
   toSqlTimestamp,
-} from './rows.js';
-export type { CollectionRow, DecisionRow, OutcomeRow, PolicyRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from './rows.js';
+} from './rows';
+export type { CollectionRow, DecisionRow, OutcomeRow, PolicyRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from './rows';
 
 /* -------------------------------------------------------------- defaults */
 
@@ -382,6 +382,6 @@ export {
   rowToPolicy,
   serviceMapToRows,
   rowsToServiceMap,
-} from './mapping-policy.js';
-export type { PolicyRules } from './mapping-policy.js';
-export { DEFAULT_POLICY_RULES } from './mapping-policy.js';
+} from './mapping-policy';
+export type { PolicyRules } from './mapping-policy';
+export { DEFAULT_POLICY_RULES } from './mapping-policy';

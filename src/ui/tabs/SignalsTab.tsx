@@ -1,5 +1,5 @@
-import { SignalList } from '../components/SignalList.js';
-import type { Locale, Signal } from '../../types.js';
+import { SignalList } from '../components/SignalList';
+import type { Locale, Signal } from '../../types';
 
 /**
  * Signals tab: the list grouped by severity, plus a waiver button on every

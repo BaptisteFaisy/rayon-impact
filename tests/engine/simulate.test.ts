@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import type { Signal } from '../../src/types.js';
+import type { Signal } from '../../src/types';
 import {
   describeRemoval,
   MAX_REMOVAL_SET,
   minimalRemovalSet,
   signalsWithoutIssues,
   simulateWithout,
-} from '../../src/engine/simulate.js';
-import { LINKED_OUTSIDE_ISSUES, paiementsRelease } from '../fixtures/paiements.js';
-import { fullCoverage } from '../fixtures/builders.js';
-import { computeVerdictStub } from './simulate-verdict-stub.js';
+} from '../../src/engine/simulate';
+import { LINKED_OUTSIDE_ISSUES, paiementsRelease } from '../fixtures/paiements';
+import { fullCoverage } from '../fixtures/builders';
+import { computeVerdictStub } from './simulate-verdict-stub';
 
 function makeTestSignal(partial: Partial<Signal> & { id: string }): Signal {
   const subjectId = partial.subjectId ?? 'id-pay-131';

@@ -7,7 +7,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { SourceStatus, SubjectRef } from './core.js';
+import type { SourceStatus, SubjectRef } from './core';
 
 /* ------------------------------------------------------------------ Jira */
 

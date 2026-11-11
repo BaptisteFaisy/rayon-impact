@@ -8,11 +8,11 @@ import type {
   SubjectRef,
   SubjectType,
   Viewer,
-} from '../../src/types.js';
-import { getSignalDefinition } from '../../src/signals/registry.js';
-import { canViewerWaive, sanitizeDossierForViewer } from '../../src/engine/permissions.js';
-import { policy, snapshot } from '../fixtures/builders.js';
-import { paiementsIncidents, paiementsPages } from '../fixtures/paiements.js';
+} from '../../src/types';
+import { getSignalDefinition } from '../../src/signals/registry';
+import { canViewerWaive, sanitizeDossierForViewer } from '../../src/engine/permissions';
+import { policy, snapshot } from '../fixtures/builders';
+import { paiementsIncidents, paiementsPages } from '../fixtures/paiements';
 
 /**
  * SPEC §15 "Droits" / RI-10: proof filtering per viewer rights.

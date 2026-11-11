@@ -16,7 +16,7 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { ReleaseStore } from '../ports.js';
+import type { ReleaseStore } from '../ports';
 import type {
   CollectedRelease,
   Decision,
@@ -26,13 +26,13 @@ import type {
   Signal,
   Snapshot,
   Waiver,
-} from '../types.js';
-import { SEVERITY_ORDER } from '../types.js';
-import type { SqlClient, SqlParam } from './sql-client.js';
-import { createForgeSqlClient } from './sql-client.js';
-import type { TableName } from './schema.js';
-import { selectList } from './rows.js';
-import type { CollectionRow, DecisionRow, OutcomeRow, PolicyRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from './rows.js';
+} from '../types';
+import { SEVERITY_ORDER } from '../types';
+import type { SqlClient, SqlParam } from './sql-client';
+import { createForgeSqlClient } from './sql-client';
+import type { TableName } from './schema';
+import { selectList } from './rows';
+import type { CollectionRow, DecisionRow, OutcomeRow, PolicyRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from './rows';
 import {
   collectionToRow,
   decisionToRow,
@@ -50,7 +50,7 @@ import {
   signalToRow,
   snapshotToRow,
   waiverToRow,
-} from './mapping.js';
+} from './mapping';
 
 /** Page size ceiling: keeps every list response far below the 4 MiB cap. */
 export const MAX_LIST_LIMIT = 100;

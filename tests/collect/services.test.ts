@@ -3,9 +3,9 @@ import {
   impactedServiceIds,
   resolveServiceForIncident,
   resolveServiceForIssue,
-} from '../../src/collect/services.js';
-import { graphFacts, incident, issue } from '../fixtures/builders.js';
-import { paiementsIssues, paiementsPolicy } from '../fixtures/paiements.js';
+} from '../../src/collect/services';
+import { graphFacts, incident, issue } from '../fixtures/builders';
+import { paiementsIssues, paiementsPolicy } from '../fixtures/paiements';
 
 /**
  * SPEC §7 — "Rattacher un ticket à un service": the three sources, in order.

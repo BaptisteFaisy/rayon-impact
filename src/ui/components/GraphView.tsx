@@ -1,5 +1,5 @@
-import type { GraphNode, GraphNodeKind, ImpactGraph, Locale } from '../../types.js';
-import { GRAPH_NODE_LIMIT } from '../../types.js';
+import type { GraphNode, GraphNodeKind, ImpactGraph, Locale } from '../../types';
+import { GRAPH_NODE_LIMIT } from '../../types';
 
 /**
  * Impact graph view, with its list equivalent (SPEC §11: the graph always has a

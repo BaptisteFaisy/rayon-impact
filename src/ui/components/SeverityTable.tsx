@@ -1,6 +1,6 @@
-import { getSignalDefinition, listSignalCodes } from '../../signals/registry.js';
-import { t } from '../../i18n/index.js';
-import type { Locale, Policy, Severity, SignalCode } from '../../types.js';
+import { getSignalDefinition, listSignalCodes } from '../../signals/registry';
+import { t } from '../../i18n/index';
+import type { Locale, Policy, Severity, SignalCode } from '../../types';
 
 /**
  * Severity table of the settings screen: one row per signal, with its effective

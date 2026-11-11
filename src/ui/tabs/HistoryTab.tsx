@@ -1,4 +1,4 @@
-import type { Decision, Locale, Outcome } from '../../types.js';
+import type { Decision, Locale, Outcome } from '../../types';
 
 /**
  * History tab: the decisions taken, with the verdict that was on screen at the

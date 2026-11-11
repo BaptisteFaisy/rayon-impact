@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { diffIsEmpty, diffSnapshots } from '../../src/engine/diff.js';
-import { makeSignal } from '../../src/signals/context.js';
-import type { Signal } from '../../src/types.js';
-import { collected, policy, snapshot } from '../fixtures/builders.js';
+import { diffIsEmpty, diffSnapshots } from '../../src/engine/diff';
+import { makeSignal } from '../../src/signals/context';
+import type { Signal } from '../../src/types';
+import { collected, policy, snapshot } from '../fixtures/builders';
 
 /** Compose signals through makeSignal so ids stay canonical (no literals). */
 function ctxWith(now: string) {

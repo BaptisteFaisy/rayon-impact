@@ -7,12 +7,12 @@
 #
 # Esquisse validée avec `forge lint` (cf. docs/ARCHITECTURE.md).
 app:
-  id: ari:cloud:ecosystem::app/0f7c3d61-4a2e-4c1b-9d55-8b2e7a6f4c19
+  id: ari:cloud:ecosystem::app/9ab91c0c-c637-4f4c-95fe-acdadbb07039
   description: >
     Release impact radius for Jira: the go / go with conditions / no-go verdict
     for a release, every reason backed by a clickable proof.
   runtime:
-    name: nodejs22.x
+    name: nodejs24.x
     architecture: x86_64
     memoryMB: 512
   compatibility:
@@ -30,7 +30,7 @@ modules:
       resolver:
         function: resolver
       title: "Rayon d'impact"
-      icon: static/icon.svg
+      icon: resource:icon;icon.svg
   jira:issueContext:
     - key: rayon-impact-issue-context
       resource: main
@@ -305,7 +305,7 @@ resources:
   - key: agent-prompt
     path: static/agent
   - key: icon
-    path: static/icon.svg
+    path: static
 
 # --------------------------------------------------------------------- scopes
 # Bloc repris de docs/research/R5-scopes-data-apis.md §1.7 (17 scopes, plafond 50).

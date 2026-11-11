@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@forge/bridge';
 import { useProductContext } from '@forge/react';
-import type { Locale } from '../types.js';
+import type { Locale } from '../types';
 
 /**
  * Shared screen plumbing: one hook to call the resolver, one to read the

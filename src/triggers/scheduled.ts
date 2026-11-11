@@ -11,10 +11,10 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import { hoursBetween } from '../signals/context.js';
-import { OUTCOME_WINDOW_HOURS, type JiraVersion } from '../types.js';
-import type { RecomputeMessage, ReleaseStore } from '../ports.js';
-import { enqueueDue, type EnqueueDeps } from './events.js';
+import { hoursBetween } from '../signals/context';
+import { OUTCOME_WINDOW_HOURS, type JiraVersion } from '../types';
+import type { RecomputeMessage, ReleaseStore } from '../ports';
+import { enqueueDue, type EnqueueDeps } from './events';
 
 /** A release the scheduler may ask a recompute for. */
 export interface ScheduledVersion {

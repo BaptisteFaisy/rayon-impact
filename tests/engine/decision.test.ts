@@ -3,7 +3,7 @@ import {
   latestDecision,
   recordDecision,
   type DecisionInput,
-} from '../../src/engine/decision.js';
+} from '../../src/engine/decision';
 
 describe('engine/decision', () => {
   const baseInput: DecisionInput = {

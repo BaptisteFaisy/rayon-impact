@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getReleaseOutcome, listImpactedTeams } from '../../src/actions/teams.js';
-import type { CollectedRelease, Decision, Outcome } from '../../src/types.js';
-import { collected, graphFacts, issue, snapshot, team } from '../fixtures/builders.js';
-import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements.js';
-import { FakeIndex, FakeStore, depsFor } from './fake-store.js';
+import { getReleaseOutcome, listImpactedTeams } from '../../src/actions/teams';
+import type { CollectedRelease, Decision, Outcome } from '../../src/types';
+import { collected, graphFacts, issue, snapshot, team } from '../fixtures/builders';
+import { paiementsPolicy, paiementsRelease } from '../fixtures/paiements';
+import { FakeIndex, FakeStore, depsFor } from './fake-store';
 
 /**
  * `list-impacted-teams` and `get-release-outcome` (SPEC §10).

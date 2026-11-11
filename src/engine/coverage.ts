@@ -7,7 +7,7 @@ import {
   type MessageRef,
   type Signal,
   type SourceStatus,
-} from '../types.js';
+} from '../types';
 
 /** Maximum minor/info signals retained when issue count exceeds ISSUE_SAMPLE_THRESHOLD. */
 export const MINOR_SIGNAL_CAP = 50;

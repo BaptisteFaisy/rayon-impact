@@ -1,7 +1,7 @@
 import Lozenge from '@atlaskit/lozenge';
 import SectionMessage from '@atlaskit/section-message';
-import { t } from '../../i18n/index.js';
-import type { Confidence, Locale, Verdict } from '../../types.js';
+import { t } from '../../i18n/index';
+import type { Confidence, Locale, Verdict } from '../../types';
 
 /**
  * The verdict banner: the first thing the release lead reads (SPEC §11).

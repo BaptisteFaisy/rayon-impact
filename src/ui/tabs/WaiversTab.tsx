@@ -1,4 +1,4 @@
-import type { Waiver } from '../../types.js';
+import type { Waiver } from '../../types';
 
 /**
  * Waivers tab: every waiver with its reason and its expiration. Waivers are

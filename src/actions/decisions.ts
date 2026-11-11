@@ -9,19 +9,19 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import { computeVerdict } from '../engine/verdict.js';
-import { signalsWithoutIssues, simulateWithout as simulateVerdict } from '../engine/simulate.js';
-import { grantWaiver, validateWaiverRequest, type WaiverRequest } from '../engine/waiver.js';
-import type { Policy, Viewer } from '../types.js';
-import { requireDossier, requirePolicy } from './release.js';
-import { ActionError, parseIssueKeys } from './types.js';
+import { computeVerdict } from '../engine/verdict';
+import { signalsWithoutIssues, simulateWithout as simulateVerdict } from '../engine/simulate';
+import { grantWaiver, validateWaiverRequest, type WaiverRequest } from '../engine/waiver';
+import type { Policy, Viewer } from '../types';
+import { requireDossier, requirePolicy } from './release';
+import { ActionError, parseIssueKeys } from './types';
 import type {
   ActionDeps,
   RequestWaiverInput,
   RequestWaiverOutput,
   SimulateWithoutInput,
   SimulateWithoutOutput,
-} from './types.js';
+} from './types';
 
 /**
  * The project role may allow waiving without being listed in the policy

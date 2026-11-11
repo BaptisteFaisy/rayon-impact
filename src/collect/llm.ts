@@ -1,5 +1,5 @@
 import { chat, list } from '@forge/llm';
-import type { Logger, NarrativeWriter } from '../ports.js';
+import type { Logger, NarrativeWriter } from '../ports';
 
 /**
  * Forge LLM adapter: the only place in the app that talks to the hosted model.

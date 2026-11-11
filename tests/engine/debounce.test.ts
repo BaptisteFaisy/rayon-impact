@@ -3,8 +3,8 @@ import {
   MIN_RECOMPUTE_INTERVAL_SECONDS,
   coalesceRequests,
   shouldRecompute,
-} from '../../src/engine/debounce.js';
-import type { RecomputeMessage } from '../../src/ports.js';
+} from '../../src/engine/debounce';
+import type { RecomputeMessage } from '../../src/ports';
 
 function request(
   versionId: string,

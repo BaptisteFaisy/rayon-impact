@@ -8,8 +8,8 @@ import {
   graphCustomQuery,
   rowsFromGraph,
   scopesInErrors,
-} from '../../src/collect/graph.js';
-import type { GraphQueryResult, GraphRunner, TeamworkGraphInput } from '../../src/collect/graph.js';
+} from '../../src/collect/graph';
+import type { GraphQueryResult, GraphRunner, TeamworkGraphInput } from '../../src/collect/graph';
 
 /**
  * Teamwork Graph collection (SPEC §12, §14, R5 §1.6/§2.6).

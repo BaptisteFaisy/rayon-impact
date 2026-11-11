@@ -8,7 +8,7 @@ import type {
   SubjectRef,
   Viewer,
   Waiver,
-} from '../types.js';
+} from '../types';
 
 /**
  * Viewer-rights filtering of a release dossier (SPEC §15 "Droits", RI-10).

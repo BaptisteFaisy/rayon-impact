@@ -1,26 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { computeCoverage } from '../../src/engine/coverage.js';
+import { computeCoverage } from '../../src/engine/coverage';
 import {
   computeConfidence,
   computeVerdict,
   confidenceTitle,
   verdictTitle,
-} from '../../src/engine/verdict.js';
-import { t } from '../../src/i18n/index.js';
+} from '../../src/engine/verdict';
+import { t } from '../../src/i18n/index';
 import type {
   Severity,
   Signal,
   SignalCode,
   SignalStatus,
-} from '../../src/types.js';
+} from '../../src/types';
 import {
   collected,
   fullCoverage,
   issue,
   unknownDev,
   version,
-} from '../fixtures/builders.js';
-import { paiementsRelease } from '../fixtures/paiements.js';
+} from '../fixtures/builders';
+import { paiementsRelease } from '../fixtures/paiements';
 
 function makeSignal(
   code: SignalCode,

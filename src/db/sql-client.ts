@@ -47,35 +47,11 @@ export interface DdlRunner {
  * Declared locally on purpose: the package is not installed yet, and these
  * types are what keeps the rest of `src/db` free of Forge imports.
  */
-interface ForgeStatement {
-  bindParams(...params: unknown[]): ForgeStatement;
-  execute(): Promise<{ rows: unknown }>;
-}
+import { sql as forgeSql, migrationRunner as forgeMigrationRunner } from '@forge/sql';
 
-interface ForgeSqlApi {
-  prepare(statement: string): ForgeStatement;
-}
-
-interface ForgeMigrationRunner {
-  enqueue(name: string, ddl: string): ForgeMigrationRunner;
-  run(): Promise<unknown>;
-}
-
-/** Named exports only: R4 §1.1 recommends them over the default export. */
-interface ForgeSqlModule {
-  sql?: ForgeSqlApi;
-  migrationRunner?: ForgeMigrationRunner;
-}
-
-/** Kept as a plain `string` so TypeScript never tries to resolve the module. */
-const FORGE_SQL_MODULE: string = '@forge/sql';
-
-let loaded: Promise<ForgeSqlModule> | null = null;
-
-/** Loads `@forge/sql` once per warm runtime; throws a clear error if absent. */
-export function loadForgeSql(): Promise<ForgeSqlModule> {
-  loaded ??= import(FORGE_SQL_MODULE).then((mod: unknown) => mod as ForgeSqlModule);
-  return loaded;
+/** Loads `@forge/sql` statically so the Forge bundler packs it. */
+export async function loadForgeSql() {
+  return { sql: forgeSql, migrationRunner: forgeMigrationRunner };
 }
 
 function toRows<Row>(rows: unknown): Row[] {
@@ -89,7 +65,7 @@ function affectedRowsOf(rows: unknown): number {
   return typeof value === 'number' ? value : 0;
 }
 
-async function requireSql(): Promise<ForgeSqlApi> {
+async function requireSql() {
   const mod = await loadForgeSql();
   const sql = mod.sql;
   if (!sql) {

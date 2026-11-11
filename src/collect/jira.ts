@@ -26,8 +26,8 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { Clock, ReleaseCollector } from '../ports.js';
-import { ISSUE_SAMPLE_THRESHOLD } from '../types.js';
+import type { Clock, ReleaseCollector } from '../ports';
+import { ISSUE_SAMPLE_THRESHOLD } from '../types';
 import type {
   CollectedRelease,
   ConfluencePage,
@@ -43,9 +43,9 @@ import type {
   SourceName,
   SourceState,
   SourceStatus,
-} from '../types.js';
-import { sourceStatus } from './paging.js';
-import type { JiraClient, JiraIssuePayload, JiraVersionPayload } from './jira-client.js';
+} from '../types';
+import { sourceStatus } from './paging';
+import type { JiraClient, JiraIssuePayload, JiraVersionPayload } from './jira-client';
 import {
   devFromJql,
   sameDay,
@@ -53,7 +53,7 @@ import {
   toJiraIssue,
   toJiraVersion,
   toRemoteLink,
-} from './jira-client.js';
+} from './jira-client';
 
 /** Hard ceiling from SPEC §15: above it the app samples minor signals. */
 export const MAX_ISSUES = ISSUE_SAMPLE_THRESHOLD;

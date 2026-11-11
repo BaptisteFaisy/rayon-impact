@@ -1,4 +1,4 @@
-import type { CollectedRelease, Policy } from '../../src/types.js';
+import type { CollectedRelease, Policy } from '../../src/types';
 import {
   collected,
   graphFacts,
@@ -10,7 +10,7 @@ import {
   team,
   unknownDev,
   version,
-} from './builders.js';
+} from './builders';
 
 /**
  * Canonical demo dataset: project "Paiements", release 2.4, 14 tickets.

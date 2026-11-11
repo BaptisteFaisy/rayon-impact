@@ -12,8 +12,8 @@
 import {
   coalesceRequests,
   shouldRecompute,
-} from '../engine/debounce.js';
-import type { Clock, JobQueue, Logger, RecomputeMessage } from '../ports.js';
+} from '../engine/debounce';
+import type { Clock, JobQueue, Logger, RecomputeMessage } from '../ports';
 
 /** The nine project-version events (R3 §1.3, S4). Exact spelling. */
 export const VERSION_EVENTS = [

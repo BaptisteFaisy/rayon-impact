@@ -1,4 +1,4 @@
-import type { Coverage, Locale } from '../../types.js';
+import type { Coverage, Locale } from '../../types';
 
 /**
  * Coverage meter: code coverage and service coverage (SPEC §4, §8, §15).

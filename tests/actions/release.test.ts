@@ -4,12 +4,12 @@ import {
   getReleaseImpact,
   listReleaseSignals,
   topSignals,
-} from '../../src/actions/release.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { detectComp } from '../../src/signals/comp.js';
-import type { CollectedRelease, Signal, Waiver } from '../../src/types.js';
-import { collected, fullCoverage, issue, policy, snapshot } from '../fixtures/builders.js';
-import { NOW, RELEASE_LEAD, FakeIndex, FakeStore, depsFor } from './fake-store.js';
+} from '../../src/actions/release';
+import type { DetectionContext } from '../../src/signals/context';
+import { detectComp } from '../../src/signals/comp';
+import type { CollectedRelease, Signal, Waiver } from '../../src/types';
+import { collected, fullCoverage, issue, policy, snapshot } from '../fixtures/builders';
+import { NOW, RELEASE_LEAD, FakeIndex, FakeStore, depsFor } from './fake-store';
 
 /**
  * `get-release-impact`, `list-release-signals`, `explain-signal` (SPEC §10).

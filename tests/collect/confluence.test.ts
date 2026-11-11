@@ -7,10 +7,10 @@ import {
   createConfluenceClient,
   createFakeConfluenceClient,
   linkedConfluencePageIds,
-} from '../../src/collect/confluence.js';
-import { CollectRequestError, type ForgeRequest, type ForgeResponseLike } from '../../src/collect/paging.js';
-import { issue } from '../fixtures/builders.js';
-import type { RemoteLink } from '../../src/types.js';
+} from '../../src/collect/confluence';
+import { CollectRequestError, type ForgeRequest, type ForgeResponseLike } from '../../src/collect/paging';
+import { issue } from '../fixtures/builders';
+import type { RemoteLink } from '../../src/types';
 
 /**
  * Confluence page collection (SPEC §7 DOC-01, R5 §4.5).

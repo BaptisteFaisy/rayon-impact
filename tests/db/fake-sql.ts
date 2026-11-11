@@ -5,7 +5,7 @@
  * tested for what it actually *asks the database* — bounded queries, bound
  * parameters, no unbounded list — without a Forge runtime.
  */
-import type { SqlClient, SqlParam } from '../../src/db/sql-client.js';
+import type { SqlClient, SqlParam } from '../../src/db/sql-client';
 
 export interface RecordedStatement {
   /** Whitespace-normalised SQL, so assertions can match across line breaks. */

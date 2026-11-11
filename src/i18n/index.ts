@@ -1,4 +1,4 @@
-import type { Locale, MessageRef } from '../types.js';
+import type { Locale, MessageRef } from '../types';
 
 /**
  * Pure i18n dictionary for English and French (SPEC §15).

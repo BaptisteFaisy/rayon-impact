@@ -1,4 +1,4 @@
-import type { SignalCode, SignalDefinition } from '../types.js';
+import type { SignalCode, SignalDefinition } from '../types';
 
 /**
  * Full signal catalogue from SPEC §7.

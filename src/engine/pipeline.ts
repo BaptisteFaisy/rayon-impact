@@ -1,27 +1,27 @@
-import type { DetectionContext } from '../signals/context.js';
-import { detectComp } from '../signals/comp.js';
-import { detectQual } from '../signals/qual.js';
-import { detectDep } from '../signals/dep.js';
-import { detectExp } from '../signals/exp.js';
-import { detectDoc } from '../signals/doc.js';
-import { detectFuture } from '../signals/future.js';
-import { applyMinorSampling, computeCoverage } from './coverage.js';
-import { computeVerdict } from './verdict.js';
+import type { DetectionContext } from '../signals/context';
+import { detectComp } from '../signals/comp';
+import { detectQual } from '../signals/qual';
+import { detectDep } from '../signals/dep';
+import { detectExp } from '../signals/exp';
+import { detectDoc } from '../signals/doc';
+import { detectFuture } from '../signals/future';
+import { applyMinorSampling, computeCoverage } from './coverage';
+import { computeVerdict } from './verdict';
 import {
   buildNarrativePayload,
   fallbackNarrative,
   isNarrativeUsable,
   NARRATIVE_MAX_ATTEMPTS,
   verifyNarrative,
-} from './narrative.js';
-import { computeOutcome } from './outcome.js';
-import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports.js';
+} from './narrative';
+import { computeOutcome } from './outcome';
+import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports';
 import type {
   Outcome,
   Policy,
   Signal,
   Snapshot,
-} from '../types.js';
+} from '../types';
 
 /**
  * Recompute pipeline: collect, detect, decide, write, store (SPEC §12).

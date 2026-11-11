@@ -3,10 +3,10 @@ import type {
   Evidence,
   JiraIssue,
   Signal,
-} from '../types.js';
-import { RECENT_ADD_HOURS } from '../types.js';
-import type { DetectionContext, Detector } from './context.js';
-import { hoursBetween, isSignalEnabled, makeSignal } from './context.js';
+} from '../types';
+import { RECENT_ADD_HOURS } from '../types';
+import type { DetectionContext, Detector } from './context';
+import { hoursBetween, isSignalEnabled, makeSignal } from './context';
 
 /**
  * COMP signal family: code completeness (SPEC §7).

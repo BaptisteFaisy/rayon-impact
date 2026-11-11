@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { requestWaiver, simulateWithout } from '../../src/actions/decisions.js';
-import { parseIssueKeys, parseRequestWaiverInput, parseSeverity } from '../../src/actions/types.js';
-import type { DetectionContext } from '../../src/signals/context.js';
-import { detectComp } from '../../src/signals/comp.js';
-import type { CollectedRelease, Signal } from '../../src/types.js';
-import { collected, fullCoverage, issue, policy, snapshot } from '../fixtures/builders.js';
-import { NOW, RELEASE_LEAD, FakeIndex, FakeStore, depsFor } from './fake-store.js';
+import { requestWaiver, simulateWithout } from '../../src/actions/decisions';
+import { parseIssueKeys, parseRequestWaiverInput, parseSeverity } from '../../src/actions/types';
+import type { DetectionContext } from '../../src/signals/context';
+import { detectComp } from '../../src/signals/comp';
+import type { CollectedRelease, Signal } from '../../src/types';
+import { collected, fullCoverage, issue, policy, snapshot } from '../fixtures/builders';
+import { NOW, RELEASE_LEAD, FakeIndex, FakeStore, depsFor } from './fake-store';
 
 /**
  * `simulate-without` and `request-waiver` (SPEC §10, RI-07, RI-13).

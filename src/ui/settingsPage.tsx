@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { invoke } from '@forge/bridge';
 import Button from '@atlaskit/button';
 import SectionMessage from '@atlaskit/section-message';
-import { useLocale, useProject, useScreen } from './hooks.js';
-import { SeverityTable } from './components/SeverityTable.js';
-import { ListField } from './components/ListField.js';
-import type { Locale, Policy } from '../types.js';
+import { useLocale, useProject, useScreen } from './hooks';
+import { SeverityTable } from './components/SeverityTable';
+import { ListField } from './components/ListField';
+import type { Locale, Policy } from '../types';
 
 /**
  * Project settings: severity per signal (RI-11), watched JSM projects, who may

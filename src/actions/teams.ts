@@ -9,10 +9,10 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import { latestDecision } from '../engine/decision.js';
-import { outcomeSummary } from '../engine/outcome.js';
-import type { CollectedRelease, ImpactedTeam, JiraIssue, Team } from '../types.js';
-import { requireDossier } from './release.js';
+import { latestDecision } from '../engine/decision';
+import { outcomeSummary } from '../engine/outcome';
+import type { CollectedRelease, ImpactedTeam, JiraIssue, Team } from '../types';
+import { requireDossier } from './release';
 import type {
   ActionDeps,
   GetReleaseOutcomeInput,
@@ -21,7 +21,7 @@ import type {
   ImpactedTicketView,
   ListImpactedTeamsInput,
   ListImpactedTeamsOutput,
-} from './types.js';
+} from './types';
 
 /** How a team was found, most trustworthy first. */
 const VIA_RANK: Record<ImpactedTeam['via'], number> = { graph: 0, link: 1, component: 2 };

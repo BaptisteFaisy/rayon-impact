@@ -27,10 +27,10 @@ import type {
   JiraVersion,
   Policy,
   RemoteLink,
-} from '../types.js';
-import { MAX_PAGE_FETCHES, readJson } from './paging.js';
-import type { ForgeRequest, ForgeResponseLike } from './paging.js';
-import { resolveServiceForIssue } from './services.js';
+} from '../types';
+import { MAX_PAGE_FETCHES, readJson } from './paging';
+import type { ForgeRequest, ForgeResponseLike } from './paging';
+import { resolveServiceForIssue } from './services';
 
 /* ------------------------------------------------------- payload shapes */
 

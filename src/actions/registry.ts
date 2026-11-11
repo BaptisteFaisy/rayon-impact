@@ -11,8 +11,8 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { ActionDefinition, ActionDeps, ActionInputSpec, ActionKey } from './types.js';
-import { ActionError, defineAction } from './types.js';
+import type { ActionDefinition, ActionDeps, ActionInputSpec, ActionKey } from './types';
+import { ActionError, defineAction } from './types';
 import {
   parseExplainSignalInput,
   parseGetReleaseImpactInput,
@@ -21,10 +21,10 @@ import {
   parseListReleaseSignalsInput,
   parseRequestWaiverInput,
   parseSimulateWithoutInput,
-} from './types.js';
-import { explainSignal, getReleaseImpact, listReleaseSignals } from './release.js';
-import { getReleaseOutcome, listImpactedTeams } from './teams.js';
-import { requestWaiver, simulateWithout } from './decisions.js';
+} from './types';
+import { explainSignal, getReleaseImpact, listReleaseSignals } from './release';
+import { getReleaseOutcome, listImpactedTeams } from './teams';
+import { requestWaiver, simulateWithout } from './decisions';
 
 /** Action keys in SPEC §10 order — the order the agent and MCP expose them. */
 export const ACTION_KEYS: readonly ActionKey[] = [

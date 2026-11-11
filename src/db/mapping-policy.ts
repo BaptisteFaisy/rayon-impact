@@ -7,10 +7,10 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { CollectedRelease, Policy, ServiceMapEntry, Severity, SignalCode } from '../types.js';
-import { SEVERITY_ORDER } from '../types.js';
-import { listSignalCodes } from '../signals/registry.js';
-import type { CollectionRow, PolicyRow, ServiceMapRow } from './rows.js';
+import type { CollectedRelease, Policy, ServiceMapEntry, Severity, SignalCode } from '../types';
+import { SEVERITY_ORDER } from '../types';
+import { listSignalCodes } from '../signals/registry';
+import type { CollectionRow, PolicyRow, ServiceMapRow } from './rows';
 import {
   fromSqlTimestamp,
   isObject,
@@ -20,7 +20,7 @@ import {
   parseStringList,
   text,
   toSqlTimestamp,
-} from './rows.js';
+} from './rows';
 
 /* ------------------------------------------------------------ collection */
 

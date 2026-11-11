@@ -12,8 +12,8 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
-import type { MessageRef } from '../types.js';
-import type { TableName } from './schema.js';
+import type { MessageRef } from '../types';
+import type { TableName } from './schema';
 
 /* ------------------------------------------------------------------ rows */
 
