@@ -12,6 +12,7 @@
  * Rule: files < 500 lines, functions < 50 lines.
  */
 import { hoursBetween } from '../signals/context';
+import { closeWaiver } from '../engine/waiver';
 import { OUTCOME_WINDOW_HOURS, type JiraVersion } from '../types';
 import type { RecomputeMessage, ReleaseStore } from '../ports';
 import { enqueueDue, type EnqueueDeps } from './events';
@@ -50,7 +51,7 @@ export interface ScheduledVersionSource {
 }
 
 export interface ScheduledDeps extends EnqueueDeps {
-  store: Pick<ReleaseStore, 'getOutcome'>;
+  store: Pick<ReleaseStore, 'getOutcome' | 'getWaivers' | 'saveWaiver'>;
   versions: ScheduledVersionSource;
 }
 
@@ -87,14 +88,45 @@ export function scheduledMode(payload: ScheduledPayload): ScheduledMode {
   return 'both';
 }
 
+/** Explicit closing motive of an auto-closed waiver (SPEC §15: closed, never deleted). */
+export const WAIVER_EXPIRED_REASON = 'expired';
+
+/**
+ * Closes every waiver of `versions` whose `expiresAt` has passed and which is
+ * not closed yet. Bounded step: open versions only, and `getWaivers` is itself
+ * limited by the store. Run BEFORE the hourly recomputes are queued, so the
+ * recomputed verdict no longer sees a live waiver and falls back to no-go
+ * (SPEC §16: "dérogation expirée pendant la nuit"). Returns the number closed.
+ */
+export async function closeExpiredWaivers(
+  deps: Pick<ScheduledDeps, 'store'>,
+  versions: ScheduledVersion[],
+  now: string,
+): Promise<number> {
+  let closed = 0;
+  for (const version of versions) {
+    const waivers = await deps.store.getWaivers(version.versionId);
+    for (const waiver of waivers) {
+      if (waiver.closedAt || waiver.expiresAt > now) continue;
+      await deps.store.saveWaiver(closeWaiver(waiver, now, WAIVER_EXPIRED_REASON));
+      closed += 1;
+    }
+  }
+  return closed;
+}
+
 async function hourlyRequests(
   deps: ScheduledDeps,
   now: string,
 ): Promise<RecomputeMessage[]> {
   const open = await deps.versions.listOpenVersions();
-  return open
-    .filter((version) => !version.released)
-    .map((version) => messageFor(version, 'schedule', now));
+  const refreshed = open.filter((version) => !version.released);
+  const closed = await closeExpiredWaivers(deps, refreshed, now);
+  deps.logger.log('info', 'scheduled expired waivers closed', {
+    versions: refreshed.length,
+    closed,
+  });
+  return refreshed.map((version) => messageFor(version, 'schedule', now));
 }
 
 function isOutcomeDue(version: ScheduledVersion, now: string): boolean {

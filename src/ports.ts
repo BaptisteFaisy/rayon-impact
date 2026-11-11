@@ -30,6 +30,9 @@ export interface ReleaseStore {
   getSignalById(signalId: string): Promise<{ versionId: string; signal: Signal } | null>;
 
   getWaivers(versionId: string): Promise<Waiver[]>;
+  /** One waiver from its id alone (`close-waiver` has no versionId). */
+  getWaiverById(waiverId: string): Promise<Waiver | null>;
+  /** Insert or update by id: a closed waiver replaces its live copy, never deleted (SPEC §15). */
   saveWaiver(waiver: Waiver): Promise<void>;
 
   getDecisions(versionId: string): Promise<Decision[]>;

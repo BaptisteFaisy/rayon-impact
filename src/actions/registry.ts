@@ -1,5 +1,5 @@
 /**
- * The 7 actions of SPEC §10, declared once.
+ * The 8 actions of SPEC §10, declared once.
  *
  * `ACTIONS` is the single table reused by three consumers: the Forge resolver
  * (src/index.ts), the `action` modules and the `rovo:mcp` tool list — one
@@ -24,7 +24,12 @@ import {
 } from './types';
 import { explainSignal, getReleaseImpact, listReleaseSignals } from './release';
 import { getReleaseOutcome, listImpactedTeams } from './teams';
-import { requestWaiver, simulateWithout } from './decisions';
+import {
+  closeWaiverAction,
+  parseCloseWaiverInput,
+  requestWaiver,
+  simulateWithout,
+} from './decisions';
 
 /** Action keys in SPEC §10 order — the order the agent and MCP expose them. */
 export const ACTION_KEYS: readonly ActionKey[] = [
@@ -35,6 +40,7 @@ export const ACTION_KEYS: readonly ActionKey[] = [
   'simulate-without',
   'get-release-outcome',
   'request-waiver',
+  'close-waiver',
 ] as const;
 
 const VERSION_ID: ActionInputSpec = {
@@ -170,6 +176,31 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
     },
     parse: parseRequestWaiverInput,
     handler: requestWaiver,
+  }),
+
+  'close-waiver': defineAction({
+    key: 'close-waiver',
+    verb: 'CREATE',
+    name: 'Close waiver',
+    description:
+      'Closes an existing waiver with a mandatory business reason, before or after its expiration. Refuses with a motivated answer when the waiver is unknown, already closed, the reason is missing or the caller is not allowed to waive. The closed waiver is kept for traceability, never deleted. Closing a waiver does not recompute the verdict by itself.',
+    inputs: {
+      waiverId: {
+        title: 'Waiver ID',
+        type: 'string',
+        required: true,
+        description:
+          'Identifier of the waiver to close, e.g. "wv-10042-COMP-01-id-pay-131".',
+      },
+      reason: {
+        title: 'Closing reason',
+        type: 'string',
+        required: true,
+        description: 'Business reason explaining why this waiver is closed.',
+      },
+    },
+    parse: parseCloseWaiverInput,
+    handler: closeWaiverAction,
   }),
 };
 

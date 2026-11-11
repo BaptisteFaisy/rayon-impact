@@ -8,7 +8,7 @@ import {
   type ScheduledVersionSource,
 } from '../../src/triggers/scheduled';
 import { createMemoryGate } from '../../src/triggers/events';
-import { OUTCOME_WINDOW_HOURS, type Outcome } from '../../src/types';
+import { OUTCOME_WINDOW_HOURS, type Outcome, type Waiver } from '../../src/types';
 import type { LogLevel, Logger, RecomputeMessage } from '../../src/ports';
 import { version } from '../fixtures/builders';
 
@@ -49,6 +49,7 @@ function setup(options: SetupOptions = {}) {
     },
   };
   const outcomes = new Set(options.outcomes ?? []);
+  const waivers = new Map<string, Waiver[]>();
   const deps: ScheduledDeps = {
     queue: {
       async publish(message: RecomputeMessage): Promise<void> {
@@ -63,12 +64,23 @@ function setup(options: SetupOptions = {}) {
       async getOutcome(versionId: string): Promise<Outcome | null> {
         return outcomes.has(versionId) ? ({ versionId } as Outcome) : null;
       },
+      async getWaivers(versionId: string): Promise<Waiver[]> {
+        return waivers.get(versionId) ?? [];
+      },
+      async saveWaiver(waiver: Waiver): Promise<void> {
+        const list = waivers.get(waiver.versionId) ?? [];
+        waivers.set(waiver.versionId, [
+          ...list.filter((candidate) => candidate.id !== waiver.id),
+          waiver,
+        ]);
+      },
     },
   };
   return {
     deps,
     published,
     releasedQueries,
+    waivers,
     openQueries: () => openQueries,
   };
 }

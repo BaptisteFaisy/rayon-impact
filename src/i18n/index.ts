@@ -165,6 +165,12 @@ export const DICTIONARY_EN: Record<string, string> = {
 
   'simulation.noSolution': 'No subset of tickets removes all blocking signals (check version-level freezes).',
 
+  // dérogations
+  'waiver.reason.required': 'A waiver needs a business reason: the request about signal {signalCode} was refused.',
+  'waiver.approver.unauthorized': '{approver} is not allowed to grant or close a waiver.',
+  'waiver.hours.invalid': 'Invalid waiver duration ({hours} h): expected between 1 and 720 hours.',
+  'waiver.notFound': 'No waiver with id “{waiverId}” is recorded.',
+  'waiver.alreadyClosed': 'Waiver “{waiverId}” is already closed (since {closedAt}).',
 };
 
 export const DICTIONARY_FR: Record<string, string> = {
@@ -291,6 +297,13 @@ export const DICTIONARY_FR: Record<string, string> = {
   'evidence.view': 'Voir la preuve',
   'simulation.bestSet': 'Retirer {count} ticket(s) ({keys}) permet de quitter le NO-GO.',
   'simulation.noSolution': 'Aucun sous-ensemble de tickets ne lève le no-go (vérifier les gels de calendrier).',
+  // dérogations
+  'waiver.reason.required': 'Une dérogation exige un motif : la demande sur le signal {signalCode} a été refusée.',
+  'waiver.approver.unauthorized': '{approver} n’est pas habilité à accorder ou clore une dérogation.',
+  'waiver.hours.invalid': 'Durée de dérogation invalide ({hours} h) : attendu entre 1 et 720 heures.',
+  'waiver.notFound': 'Aucune dérogation enregistrée avec l’identifiant « {waiverId} ».',
+  'waiver.alreadyClosed': 'La dérogation « {waiverId} » est déjà close (depuis {closedAt}).',
+
   // Simulation (RI-13) et differences (RI-14) - ajoutees le 11/11/2026
   'simulation.run': 'Simuler sans {keys}',
   'simulation.runMinimal': 'Retirer {count} ticket(s) pour lever le no-go',
@@ -306,7 +319,6 @@ export const DICTIONARY_FR: Record<string, string> = {
   'diff.added': 'Nouveaux signaux',
   'diff.cleared': 'Signaux levés',
   'diff.severity': 'Gravité modifiée',
-
 };
 
 const DICTIONARIES: Record<Locale, Record<string, string>> = {
