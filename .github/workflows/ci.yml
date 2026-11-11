@@ -70,7 +70,11 @@ jobs:
           vides, illisibles, total = [], [], 0
           for racine in racines:
               for f in sorted(racine.rglob("*")):
-                  if ".git/" in f.as_posix() or f.suffix.lower() not in exts:
+                  chemin = f.as_posix()
+                  # node_modules et sorties de build : jamais des documents du depot.
+                  if any(d in chemin for d in (".git/", "node_modules/", "/dist/", "/build/")):
+                      continue
+                  if f.suffix.lower() not in exts:
                       continue
                   total += 1
                   try:
