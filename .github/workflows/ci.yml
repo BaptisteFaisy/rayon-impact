@@ -1,9 +1,12 @@
 name: CI
 
-# CI générique pour un dépôt de thèses/docs : contrôles rapides, stdlib
-# uniquement, verdict en quelques secondes. Le check publié s'appelle `ci`
-# (c'est le nom du job qui nomme le check) : il est exigé par le ruleset de
-# `main` et par la file Mergify, comme `ci-budget` et `couche0`.
+# CI de l'app Forge « Rayon d'impact » : types, tests unitaires, sanity docs et
+# tests des gardes. Le check publié s'appelle `ci` : il est exigé par le
+# ruleset de `main` et par la file Mergify, comme `ci-budget` et `couche0`.
+#
+# Budget : 5 minutes maximum (règle user 2026-10-24). Les runners sont
+# persistants : `node_modules` est conservé d'un run à l'autre, l'installation
+# n'a lieu que si `package-lock.json` a changé. Le cache npm est partagé.
 on:
   pull_request:
   # File de merge : même contrôle sur le commit temporaire du groupe.
@@ -29,14 +32,34 @@ jobs:
           persist-credentials: false
           clean: false
 
-      # Runners self-hosted persistants : un sous-dossier parasite d'un run
-      # précédent peut survivre et fausser le sanity docs (flaky constaté sur
-      # les dépôts frères). Nettoyage complet du workspace — pas de sorties
-      # de build à préserver sur ce dépôt docs ; si un jour il y a des
-      # builds, exclure leurs dossiers ici comme vision (`-e`).
-      - name: Nettoyage du workspace
+      # Runners self-hosted persistants : on garde `node_modules` (l'app
+      # TypeScript), on jette le reste. `git clean -ffdx` sans `-e` effacerait
+      # les dépendances et ferait exploser le budget de 5 minutes.
+      - name: Nettoyage du workspace (node_modules conservé)
         shell: bash
-        run: git clean -ffdx
+        run: git clean -ffdx -e /node_modules -e /.npm -e /dist -e /build
+
+      - name: Dépendances (cache npm partagé, installation si le lock a changé)
+        shell: bash
+        run: |
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/bin:$PATH"
+          export NPM_CONFIG_CACHE="$HOME/.npm-ci-cache"
+          LOCK_HASH="$(sha256sum package-lock.json | cut -d' ' -f1)"
+          MARKER=node_modules/.rayon-lock-hash
+          if [ ! -d node_modules ] || [ "$LOCK_HASH" != "$(cat "$MARKER" 2>/dev/null)" ]; then
+            echo "installation des dependances..."
+            npm ci --prefer-offline --no-audit --no-fund
+            printf '%s' "$LOCK_HASH" > "$MARKER"
+          else
+            echo "node_modules deja a jour - installation sautee"
+          fi
+
+      - name: Types (tsc --noEmit)
+        run: npx tsc --noEmit
+
+      - name: Tests unitaires (vitest)
+        run: npx vitest run --passWithNoTests
 
       - name: Sanity docs (UTF-8, non vides)
         run: |
@@ -57,16 +80,16 @@ jobs:
                       continue
                   if not contenu.strip():
                       vides.append(f.as_posix())
-          print("%d doc(s) contrôlé(s)" % total)
+          print("%d doc(s) controle(s)" % total)
           for f in illisibles:
-              print("::error::illisible en UTF-8 : %s" % f)
+                  print("::error::illisible en UTF-8 : %s" % f)
           for f in vides:
-              print("::error::document vide : %s" % f)
+                  print("::error::document vide : %s" % f)
           raise SystemExit(1 if (illisibles or vides) else 0)
           EOF
 
-      # Les gardes de la CI se testent elles-mêmes : couche0 + agents
-      # fireworks — stdlib, quelques secondes, aucun réseau.
+      # Les gardes de la CI se testent elles-memes : couche0 + agents
+      # fireworks - stdlib, quelques secondes, aucun reseau.
       - name: Tests des gardes CI (couche0, fireworks)
         run: |
           python3 .github/couche0/test_check_couche0.py
