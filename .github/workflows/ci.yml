@@ -72,9 +72,12 @@ jobs:
           if complet node_modules && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
             echo "node_modules complet et lock inchange - installation sautee"
           elif [ -d "$CACHE" ] && complet "$CACHE" && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
-            rm -rf node_modules
-            cp -al "$CACHE" node_modules
-            echo "node_modules restaure depuis le cache (liens durs)"
+            # Incremental : `cp -aln` ne cree que les liens manquants. Un
+            # `rm -rf` suivi d'une copie complete de 642 paquets prenait 4 min
+            # sur un hote charge, soit tout le budget du job.
+            mkdir -p node_modules
+            cp -aln "$CACHE"/. node_modules/ 2>/dev/null || true
+            echo "node_modules complete depuis le cache (liens durs, incremental)"
           else
             echo "installation des dependances..."
             npm ci --prefer-offline --no-audit --no-fund
