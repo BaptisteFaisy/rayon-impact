@@ -13,7 +13,8 @@
 # d'un push d'auteur arrivé entre-temps. Forks exclus ; brouillons rebasés
 # et réconciliés mais jamais mergés.
 # Conflits (v5, 2026-10-28) : l'agent Fireworks tente de les résoudre
-# (.github/fireworks/conflict_agent.py, modèle MiniMax M3.1 Flash) : résolution
+# (.github/fireworks/conflict_agent.py, fournisseur et modèle posés par les
+#  variables FIREWORKS_BASE_URL / FIREWORKS_MODEL) : résolution
 # conflit par conflit, fin du rebase, push avec bail, compte rendu sur la PR.
 # Sans le secret FIREWORKS_API_KEY, on saute comme avant et l'auteur rebase à
 # la main. Coupe-circuit : variable de dépôt FIREWORKS_AGENT_RESOLVE=0.
@@ -460,6 +461,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_ECRITURE: ${{ secrets.AUTOMERGE_PAT }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+          # Sans cette ligne l'agent part sur l'URL Fireworks par défaut alors
+          # que FIREWORKS_MODEL désigne un modèle d'un autre fournisseur
+          # (InferHub) : il reçoit alors une 404 et ne résout rien.
+          FIREWORKS_BASE_URL: ${{ vars.FIREWORKS_BASE_URL }}
           FIREWORKS_MODEL: ${{ vars.FIREWORKS_MODEL }}
           FIREWORKS_AGENT_RESOLVE: ${{ vars.FIREWORKS_AGENT_RESOLVE }}
           FIREWORKS_AGENT_SCOPE: ${{ vars.FIREWORKS_AGENT_SCOPE }}
