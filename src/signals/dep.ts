@@ -40,11 +40,17 @@ function isBlockingLinkType(type: string): boolean {
   return BLOCKING_LINK_PATTERN.test(type);
 }
 
-/** The first link of this ticket that blocks it while the target is still open. */
+/**
+ * The first link by which this ticket **is blocked** while the target is still
+ * open. Direction matters (SPEC §7): a release ticket that merely *blocks* an
+ * open ticket is not held back by it — that relation is DEP-02's business when
+ * the other side lives in another project.
+ */
 function openBlockerLink(issue: JiraIssue): IssueLinkRef | undefined {
   return issue.links.find(
     (link) =>
       isBlockingLinkType(link.type) &&
+      link.inward &&
       (link.targetStatusCategory ?? 'unknown') !== 'done',
   );
 }

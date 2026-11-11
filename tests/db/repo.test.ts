@@ -162,7 +162,8 @@ describe('ForgeReleaseStore — list reads', () => {
   it('listSnapshots maps rows and bounds the page size', async () => {
     sql.on(/FROM release_snapshot WHERE project_id = \?/, { rows: [SNAPSHOT_ROW] });
     await expect(store.listSnapshots('proj-pay', 5)).resolves.toEqual([snapshot()]);
-    expect(sql.statements[0].params).toEqual(['proj-pay', 5]);
+    expect(sql.statements[0].params).toEqual(['proj-pay']);
+    expect(sql.statements[0].sql).toMatch(/LIMIT 5\b/);
   });
 
   it('clamps an absurd page size instead of trusting the caller', () => {
@@ -181,7 +182,8 @@ describe('ForgeReleaseStore — list reads', () => {
     sql.on(/FROM signal WHERE snapshot_id = \?/, { rows: [minor, SIGNAL_ROW] });
     const signals = await store.getSignals('snap-1');
     expect(signals.map((entry) => entry.severity)).toEqual(['blocking', 'minor']);
-    expect(sql.statements[0].params).toEqual(['snap-1', MAX_SIGNALS_PER_SNAPSHOT]);
+    expect(sql.statements[0].params).toEqual(['snap-1']);
+    expect(sql.statements[0].sql).toMatch(new RegExp(`LIMIT ${MAX_SIGNALS_PER_SNAPSHOT}\\b`));
   });
 
   it('getWaivers and getDecisions return empty lists when nothing was recorded', async () => {
@@ -304,18 +306,23 @@ describe('ForgeReleaseStore — query bounds', () => {
     }
   });
 
-  it('lists are always capped by a bound limit, never by the caller alone', async () => {
+  it('lists are always capped by an inlined integer limit', async () => {
     await store.listSnapshots('proj-pay', 10_000);
     await store.getSignals('snap-1');
     await store.getWaivers('ver-24');
     await store.getDecisions('ver-24');
     await store.getPolicy('proj-pay');
-    const boundedLists = sql.matching(/^SELECT .*LIMIT \?/);
-    expect(boundedLists.length).toBeGreaterThan(0);
-    for (const statement of boundedLists) {
-      const limit = statement.params[statement.params.length - 1];
-      expect(typeof limit, statement.sql).toBe('number');
-      expect(limit as number).toBeLessThanOrEqual(MAX_SIGNALS_PER_SNAPSHOT);
+
+    // Forge SQL (TiDB) rejette `LIMIT ?` : error 1210 "Incorrect arguments to
+    // LIMIT". La limite est donc inlinee, apres coercion en entier borne.
+    expect(sql.matching(/LIMIT \?/)).toEqual([]);
+
+    const bounded = sql.matching(/SELECT[\s\S]*LIMIT \d+/);
+    expect(bounded.length).toBeGreaterThan(0);
+    for (const statement of bounded) {
+      const limit = Number(/LIMIT (\d+)/.exec(statement.sql)?.[1]);
+      expect(limit, statement.sql).toBeGreaterThan(0);
+      expect(limit, statement.sql).toBeLessThanOrEqual(MAX_SIGNALS_PER_SNAPSHOT);
     }
   });
 });

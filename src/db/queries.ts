@@ -1,4 +1,5 @@
 import type { SqlClient, SqlParam } from './sql-client';
+import { sqlLimit } from './sql-client';
 
 /**
  * Version queries kept out of the `ReleaseStore` interface: they serve the
@@ -7,6 +8,9 @@ import type { SqlClient, SqlParam } from './sql-client';
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
+
+/** Hard cap for the version listings: bounded queries only (SPEC §15). */
+export const MAX_VERSION_ROWS = 100;
 
 export interface VersionRow {
   version_id: string;
@@ -28,8 +32,8 @@ export async function listVersions(
       WHERE project_id = ?
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
-      LIMIT ?`,
-    [projectId, limit],
+      LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
+    [projectId],
   );
   return rows;
 }
@@ -46,8 +50,8 @@ export async function listOpenVersions(
       WHERE project_id = ? AND version_released = 0
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
-      LIMIT ?`,
-    [projectId, limit],
+      LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
+    [projectId],
   );
   return rows;
 }
@@ -65,8 +69,8 @@ export async function listReleasedVersions(
       WHERE project_id = ? AND version_released = 1 AND computed_at >= ?
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
-      LIMIT ?`,
-    [projectId, sinceIso, limit],
+      LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
+    [projectId, sinceIso],
   );
   return rows;
 }
@@ -83,8 +87,8 @@ export async function listVersionsForIssue(
        JOIN signal g ON g.snapshot_id = s.id
       WHERE g.subject_type = 'issue' AND g.subject_id = ?
       ORDER BY s.computed_at DESC
-      LIMIT ?`,
-    [issueId, limit],
+      LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
+    [issueId],
   );
   return rows;
 }

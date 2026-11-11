@@ -76,10 +76,17 @@ export async function onMessage(
     const result = await deps.recompute(deps.pipeline, request);
     deps.logger.log('info', 'recompute finished', {
       versionId: request.versionId,
+      versionName: result.snapshot.versionName,
       reason: request.reason,
       verdict: result.snapshot.verdict,
       confidence: result.snapshot.confidence,
       signals: result.signals.length,
+      codes: result.signals.slice(0, 8).map((signal) => signal.code).join(','),
+      blocking: result.snapshot.counts.blocking,
+      major: result.snapshot.counts.major,
+      coverageCode: `${result.snapshot.coverage.issuesWithCode}/${result.snapshot.coverage.issueCount}`,
+      coverageService: `${result.snapshot.coverage.issuesWithService}/${result.snapshot.coverage.issueCount}`,
+      narrativeFromModel: result.narrativeFromModel,
       durationMs: result.durationMs,
     });
     return result;
