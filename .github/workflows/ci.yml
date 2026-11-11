@@ -4,7 +4,7 @@ name: CI
 # tests des gardes. Le check publié s'appelle `ci` : il est exigé par le
 # ruleset de `main` et par la file Mergify, comme `ci-budget` et `couche0`.
 #
-# Budget : 5 minutes maximum (règle user 2026-10-24). Les runners sont
+# Budget : 5 minutes maximum (règle CI du 24 octobre). Les runners sont
 # persistants : `node_modules` est conservé d'un run à l'autre, l'installation
 # n'a lieu que si `package-lock.json` a changé. Le cache npm est partagé.
 on:
