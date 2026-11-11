@@ -50,7 +50,7 @@ jobs:
       # qui faisait repartir un `npm ci` de 5 min à chaque run — donc un job tué
       # par son propre `timeout-minutes: 5`. La restauration par liens durs
       # prend quelques secondes.
-      - name: Dépendances (cache hors workspace, installation si le lock a changé)
+      - name: Dépendances (cache hors workspace, contrôle de complétude)
         shell: bash
         run: |
           echo "$HOME/bin" >> "$GITHUB_PATH"
@@ -63,14 +63,18 @@ jobs:
           CACHE="$STATE/$KEY.node_modules"
           LOCK_HASH="$(sha256sum package-lock.json | cut -d' ' -f1)"
           MARKER_HASH="$(cat "$MARKER" 2>/dev/null || echo absent)"
-          if [ ! -d node_modules ] && [ -d "$CACHE" ]; then
-            cp -al "$CACHE" node_modules 2>/dev/null || cp -a "$CACHE" node_modules
-            echo "node_modules restaure depuis le cache"
-          fi
-          MODULES="$([ -d node_modules ] && echo present || echo absent)"
-          echo "diag: lock=$LOCK_HASH marqueur=$MARKER_HASH node_modules=$MODULES"
-          if [ "$MODULES" = "present" ] && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
-            echo "node_modules deja a jour - installation sautee"
+          # Un `npm ci` tué par le budget laisse un node_modules PARTIEL : tester
+          # seulement `-d node_modules` faisait sauter l'installation à tort, puis
+          # échouer tsc (« Cannot find type definition file for 'node' »).
+          complet() { [ -f "$1/.package-lock.json" ] && [ -d "$1/typescript" ] && [ -d "$1/@forge/api" ]; }
+          etat() { if complet "$1"; then echo complet; elif [ -d "$1" ]; then echo partiel; else echo absent; fi; }
+          echo "diag: cle=$KEY lock=${LOCK_HASH:0:12} marqueur=${MARKER_HASH:0:12} workspace=$(etat node_modules) cache=$([ -d "$CACHE" ] && etat "$CACHE" || echo absent)"
+          if complet node_modules && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
+            echo "node_modules complet et lock inchange - installation sautee"
+          elif [ -d "$CACHE" ] && complet "$CACHE" && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
+            rm -rf node_modules
+            cp -al "$CACHE" node_modules
+            echo "node_modules restaure depuis le cache (liens durs)"
           else
             echo "installation des dependances..."
             npm ci --prefer-offline --no-audit --no-fund
@@ -79,10 +83,6 @@ jobs:
             cp -al node_modules "$CACHE" 2>/dev/null || true
           fi
 
-      # « Ne tester que ce qui a changé » (politique CI 5 min) : une PR qui ne
-      # touche ni TypeScript ni dépendances n'a pas à payer tsc + vitest. Sur un
-      # runner partagé et chargé, ces deux pas suffisent à faire dépasser le
-      # budget. Le check requis reste le job `ci`, qui réussit dans les deux cas.
       - name: Le TypeScript ou les dépendances ont-ils changé ?
         id: ts
         shell: bash
