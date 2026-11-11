@@ -37,7 +37,7 @@ jobs:
       # les dépendances et ferait exploser le budget de 5 minutes.
       - name: Nettoyage du workspace (node_modules conservé)
         shell: bash
-        run: git clean -ffdx -e /node_modules -e /.npm -e /dist -e /build
+        run: git clean -ffdx -e /node_modules -e /.npm-state -e /dist -e /build
 
       - name: Dépendances (cache npm partagé, installation si le lock a changé)
         shell: bash
@@ -46,7 +46,9 @@ jobs:
           export PATH="$HOME/bin:$PATH"
           export NPM_CONFIG_CACHE="$HOME/.npm-ci-cache"
           LOCK_HASH="$(sha256sum package-lock.json | cut -d' ' -f1)"
-          MARKER=node_modules/.rayon-lock-hash
+          # Le marqueur vit HORS de node_modules : `npm ci` efface ce dossier.
+          mkdir -p .npm-state
+          MARKER=.npm-state/lock-hash
           if [ ! -d node_modules ] || [ "$LOCK_HASH" != "$(cat "$MARKER" 2>/dev/null)" ]; then
             echo "installation des dependances..."
             npm ci --prefer-offline --no-audit --no-fund
