@@ -126,17 +126,7 @@ function Dossier({
   const { snapshot } = dossier.data;
   return (
     <div>
-      <VerdictBanner
-        verdict={snapshot.verdict}
-        confidence={snapshot.confidence}
-        computedAt={snapshot.computedAt}
-        locale={locale}
-      />
-      <CoverageMeter coverage={snapshot.coverage} locale={locale} />
-      <DiffBanner diff={diff.data} locale={locale} />
-      <div style={{ padding: '0 12px' }}>
-        <p style={{ whiteSpace: 'pre-line' }}>{snapshot.narrative}</p>
-      </div>
+      <DossierHeader snapshot={snapshot} diff={diff.data} locale={locale} />
       <DossierTabs
         tab={tab}
         onTab={setTab}
@@ -160,6 +150,33 @@ function Dossier({
   );
 }
 
+
+/** Verdict, coverage, what changed since the last dossier, and the summary. */
+function DossierHeader({
+  snapshot,
+  diff,
+  locale,
+}: {
+  snapshot: ReleaseDossier['snapshot'];
+  diff: SnapshotDiff | null;
+  locale: Locale;
+}) {
+  return (
+    <div>
+      <VerdictBanner
+        verdict={snapshot.verdict}
+        confidence={snapshot.confidence}
+        computedAt={snapshot.computedAt}
+        locale={locale}
+      />
+      <CoverageMeter coverage={snapshot.coverage} locale={locale} />
+      <DiffBanner diff={diff} locale={locale} />
+      <div style={{ padding: '0 12px' }}>
+        <p style={{ whiteSpace: 'pre-line' }}>{snapshot.narrative}</p>
+      </div>
+    </div>
+  );
+}
 
 function DossierTabs(props: {
   tab: number;
