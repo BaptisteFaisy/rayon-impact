@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Release Impact Radius — the go/no-go, with proof</title>
+<meta name="description" content="A Forge app for Jira that turns the release go/no-go decision into evidence-backed signals. Codegeist 2026 — Apps for Software Teams.">
+<style>
+  :root {
+    --ink: #172b4d;
+    --muted: #6b778c;
+    --blue: #0052cc;
+    --green: #36b37e;
+    --orange: #ff8b00;
+    --red: #de350b;
+    --violet: #6554c0;
+    --line: #dfe1e6;
+    --bg: #f4f5f7;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: var(--ink);
+    background: var(--bg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+  header.hero {
+    background: linear-gradient(135deg, #0a1b3d 0%, #0052cc 100%);
+    color: #fff;
+    padding: 56px 0 40px;
+  }
+  header.hero h1 { font-size: 2.2rem; line-height: 1.2; margin: 0 0 12px; }
+  header.hero p { font-size: 1.15rem; opacity: .92; margin: 0; max-width: 640px; }
+  .badge {
+    display: inline-block;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.3);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: .8rem;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  section { padding: 40px 0; }
+  h2 { font-size: 1.5rem; margin: 0 0 16px; }
+  .grid { display: grid; gap: 16px; }
+  @media (min-width: 720px) { .grid.cols-3 { grid-template-columns: repeat(3, 1fr); } .grid.cols-2 { grid-template-columns: repeat(2, 1fr); } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; }
+  .card h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .card p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .lozenge {
+    display: inline-block; border-radius: 4px; padding: 2px 10px;
+    font-weight: 700; font-size: .85rem; letter-spacing: .03em;
+  }
+  .lozenge.go { background: #e3fcef; color: #006644; }
+  .lozenge.cond { background: #deebff; color: var(--blue); }
+  .lozenge.nogo { background: #ffebe6; color: var(--red); }
+  pre.diagram {
+    background: #0d1b2a; color: #d6e4ff;
+    border-radius: 10px; padding: 18px; overflow-x: auto;
+    font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  table { width: 100%; border-collapse: collapse; background: var(--card); }
+  th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); font-size: .93rem; }
+  th { background: var(--bg); color: var(--muted); text-transform: uppercase; font-size: .76rem; letter-spacing: .05em; }
+  code { background: #eaeef5; border-radius: 4px; padding: 1px 6px; font-size: .88em; }
+  .muted { color: var(--muted); }
+  .cta a {
+    display: inline-block; background: var(--blue); color: #fff; text-decoration: none;
+    padding: 12px 22px; border-radius: 8px; font-weight: 600; margin: 6px 6px 0 0;
+  }
+  .cta a.alt { background: #fff; color: var(--blue); border: 1px solid var(--blue); }
+  footer { padding: 32px 0; color: var(--muted); font-size: .85rem; }
+  .demo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .pill { display:inline-block; background:#eaeef5; border-radius:999px; padding:2px 10px; font-size:.8rem; margin:2px; color:var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="badge">Codegeist 2026 · Apps for Software Teams · Forge app for Jira</span>
+    <h1>Release Impact Radius</h1>
+    <p>Before shipping a Jira version, the app walks everything attached to it — tickets,
+    code, builds, services, teams, incidents, documentation — and returns a
+    <strong>go / conditional go / no-go</strong> verdict in which every reason points at its proof.</p>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2>The problem</h2>
+    <div class="grid cols-3">
+      <div class="card"><h3>Scattered</h3><p>Jira knows the tickets, the VCS knows the PRs, JSM knows the incidents, Confluence knows the docs. Nobody joins them.</p></div>
+      <div class="card"><h3>Decided in a meeting</h3><p>The go/no-go is settled from memory in a room — often the morning of the ship.</p></div>
+      <div class="card"><h3>Consequences are known</h3><p>A neighbour team discovers the change in production, you ship over an open incident, support learns the news from a customer.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>One verdict, three states</h2>
+    <div class="grid cols-3">
+      <div class="card"><span class="lozenge go">GO</span><p>No blocking nor major signal active. The coverage is stated, never hidden.</p></div>
+      <div class="card"><span class="lozenge cond">CONDITIONAL GO</span><p>At least one major signal or an active waiver — the conditions are listed, one by one.</p></div>
+      <div class="card"><span class="lozenge nogo">NO-GO</span><p>At least one blocking signal without a waiver, ordered by severity, each with a clickable proof.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Signals — each answerable with a proof</h2>
+    <p class="muted">The verdict is deterministic. Every signal shows four things: what is observed,
+    why it matters, the link to the proof, and how to clear it.</p>
+    <table>
+      <thead><tr><th>Code</th><th>Signal</th><th>Default severity</th></tr></thead>
+      <tbody>
+        <tr><td><code>COMP-01</code></td><td>Unfinished ticket in the release</td><td>Blocking</td></tr>
+        <tr><td><code>COMP-02</code></td><td>Done ticket with no commit nor PR</td><td>Major</td></tr>
+        <tr><td><code>COMP-03</code></td><td>Open pull request on a release ticket</td><td>Blocking</td></tr>
+        <tr><td><code>QUAL-01</code></td><td>Latest build failed on a release ticket</td><td>Blocking</td></tr>
+        <tr><td><code>QUAL-02</code></td><td>Pull request merged without approval</td><td>Major</td></tr>
+        <tr><td><code>DEP-01</code></td><td>Ticket blocked by a still-open ticket</td><td>Blocking</td></tr>
+        <tr><td><code>DEP-02</code></td><td>Cross-project ticket depends on this release</td><td>Major</td></tr>
+        <tr><td><code>EXP-01</code></td><td>Open incident on an impacted service</td><td>Blocking</td></tr>
+        <tr><td><code>EXP-02</code></td><td>Incident resolved less than 7 days ago</td><td>Major</td></tr>
+        <tr><td><code>DOC-01</code></td><td>Linked Confluence page not updated this cycle</td><td>Minor</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">More signals are implemented (reopened bugs, late additions, deployment
+    freezes, concurrent releases, risk zones learned from past 72&nbsp;h outcomes) and are
+    documented in the repository.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>How it works</h2>
+<pre class="diagram">
+ Jira event ──► trigger ──► queue (coalesced, ≤1/min/version)
+                              │
+                              ▼
+                         consumer ──► collect (Jira · JSM · Confluence · Teamwork Graph)
+                              │            │
+                              │            ▼
+                              │      17 signal detectors (pure, deterministic)
+                              │            │
+                              │            ▼
+                              │    verdict + confidence + coverage
+                              │            │
+                              │            ▼
+                              │   LLM summary ──► verified against the signals
+                              │            │
+                              ▼            ▼
+                       release_snapshot  +  signal rows (Forge SQL)
+                              │
+                              ▼
+         screens · Rovo agent · 7 MCP actions  (always read the saved dossier)
+</pre>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Built on Forge, with the Teamwork Graph, Rovo and MCP</h2>
+    <div class="grid cols-3">
+      <div class="card"><h3>Teamwork Graph</h3><p>Ticket → commit → PR → build, teams and Compass components, read as the user and cached with the dossier.</p></div>
+      <div class="card"><h3>Rovo agent</h3><p>“Can we ship 2.4?” — the agent only restates decisions and links it never computes itself, from the same saved dossier as the screen.</p></div>
+      <div class="card"><h3>MCP tools</h3><p>Seven read-mostly tools: get-release-impact, list-release-signals, simulate-without, request-waiver… A code agent can ask whether its PR holds a release back.</p></div>
+    </div>
+    <p class="muted">No egress outside Atlassian: Forge SQL storage and the hosted LLM keep the data
+    inside the product — an argument of trust the submission puts forward.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>Proven against a real site</h2>
+    <p>Deployed to <code>development</code> and <code>production</code>, installed on Jira
+    <strong>and</strong> Confluence of a Forge demo site. A recompute triggered by a real Jira
+    event ends with:</p>
+<pre class="diagram">
+recompute finished {
+  versionName: '2.4', verdict: 'no-go', confidence: 'low',
+  signals: 3, codes: 'COMP-01,DEP-01,DEP-02', blocking: 2, major: 1,
+  coverageCode: '0/14', coverageService: '2/14', narrativeFromModel: true
+}
+</pre>
+    <p class="muted">An acceptance harness replays four of the eight acceptance points of the spec
+    against the live site: <span class="pill">R1 no-go + proof</span>
+    <span class="pill">R5 honest low coverage</span>
+    <span class="pill">R6 auto recompute in 13&nbsp;s</span>
+    <span class="pill">R8 no hallucinated key</span>.
+    Low confidence and service coverage are stated, never dressed up — missing data is never
+    presented as good news.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2>See it</h2>
+    <div class="cta">
+      <a href="https://github.com/BaptisteFaisy/rayon-impact" rel="noopener">Source on GitHub</a>
+      <a class="alt" href="https://github.com/BaptisteFaisy/rayon-impact/blob/main/docs/VIDEO-SCRIPT.md" rel="noopener">Demo video script</a>
+    </div>
+    <p class="muted" style="margin-top:16px">Demo video to be embedded here. Repository:
+    <code>BaptisteFaisy/rayon-impact</code>, public.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    Release Impact Radius — a Codegeist 2026 submission (category: Apps for Software Teams).
+    Interface in English and French. The repository documents architecture, data model,
+    operations and the acceptance harness.
+  </div>
+</footer>
+
+</body>
+</html>
