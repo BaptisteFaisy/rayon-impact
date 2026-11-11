@@ -243,8 +243,14 @@ export function findingKeyFor(code: SignalCode): string {
  * `snapshotId` is a parameter, not a field of `Signal`: a signal carries its
  * identity and proof, the snapshot is the writing context the repo provides.
  */
+/** Primary key of a signal row: one signal per dossier, not one per app. */
+export function signalRowKey(signalId: string, snapshotId: string): string {
+  return `${snapshotId}|${signalId}`;
+}
+
 export function signalToRow(signal: Signal, snapshotId: string): SignalRow {
   return {
+    row_key: signalRowKey(signal.id, snapshotId),
     id: signal.id,
     snapshot_id: snapshotId,
     code: signal.code,

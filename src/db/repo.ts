@@ -136,7 +136,7 @@ export class ForgeReleaseStore implements ReleaseStore {
   async saveSnapshot(snapshot: Snapshot, signals: Signal[]): Promise<void> {
     await insertOrUpdate(this.client, 'release_snapshot', snapshotToRow(snapshot), ['id']);
     for (const signal of signals) {
-      await insertOrUpdate(this.client, 'signal', signalToRow(signal, snapshot.id), ['id']);
+      await insertOrUpdate(this.client, 'signal', signalToRow(signal, snapshot.id), ['row_key']);
     }
     await this.closeMissingSignals(snapshot.id, signals);
   }
@@ -169,7 +169,7 @@ export class ForgeReleaseStore implements ReleaseStore {
     const row = await this.first<SignalRow & { version_id: string }>(
       `SELECT ${selectList('signal')}, r.version_id
          FROM signal s JOIN release_snapshot r ON r.id = s.snapshot_id
-        WHERE s.id = ? LIMIT 1`,
+        WHERE s.id = ? ORDER BY r.computed_at DESC LIMIT 1`,
       [signalId],
     );
     if (!row) return null;

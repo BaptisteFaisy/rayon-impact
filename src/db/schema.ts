@@ -151,6 +151,46 @@ export const CREATE_COLLECTION = `
     payload_json TEXT
   )`;
 
+/**
+ * v002/v003 : la table `signal` historique a `id` comme clé primaire, or `id`
+ * est dérivé du contenu (`CODE:subjectType:subjectId`) : chaque recalcul
+ * écrasait les signaux du dossier précédent (constaté en réel sur le site de
+ * démo — 30 dossiers sur 31 sans aucun signal, donc plus de diff RI-14 possible).
+ * La table est recréée avec `row_key = snapshot_id|id` comme clé.
+ *
+ * Ordre volontaire : v001 (schéma historique) → v002 (drop) → v003 (nouveau
+ * schéma). Sur une installation neuve v001 crée puis v002 supprime puis v003
+ * recrée : une création perdue, mais un état final identique dans les deux cas.
+ * Les données de démo perdues sont régénérées au recalcul suivant.
+ */
+export const DROP_SIGNAL_LEGACY = 'DROP TABLE IF EXISTS signal';
+
+export const CREATE_SIGNAL_ROW_KEY = `
+  CREATE TABLE IF NOT EXISTS signal (
+    row_key VARCHAR(191) NOT NULL PRIMARY KEY,
+    id VARCHAR(191) NOT NULL,
+    snapshot_id VARCHAR(64) NOT NULL,
+    code VARCHAR(48) NOT NULL,
+    severity VARCHAR(16) NOT NULL,
+    status VARCHAR(16) NOT NULL,
+    subject_type VARCHAR(24) NOT NULL,
+    subject_id VARCHAR(64) NOT NULL,
+    finding_json TEXT,
+    evidence_json TEXT,
+    detected_at TIMESTAMP NOT NULL,
+    first_seen_at TIMESTAMP NOT NULL,
+    waiver_id VARCHAR(64) NULL,
+    INDEX idx_signal_id (id),
+    INDEX idx_signal_snapshot (snapshot_id),
+    INDEX idx_signal_status (status)
+  )`;
+
+/** Migrations appended after the per-table v001 steps, in order. */
+export const EXTRA_MIGRATIONS: DdlMigration[] = [
+  { name: 'v002_drop_signal_legacy', ddl: DROP_SIGNAL_LEGACY },
+  { name: 'v003_create_signal_row_key', ddl: CREATE_SIGNAL_ROW_KEY },
+];
+
 /** DDL per table, keyed by table name — the single source for `defineAllTables`. */
 export const TABLE_DDL: Record<TableName, string> = {
   release_snapshot: CREATE_RELEASE_SNAPSHOT,
@@ -173,7 +213,10 @@ export function migrationName(table: TableName): string {
  * the same names with the same `IF NOT EXISTS` DDL and changes nothing.
  */
 export function defineAllTables(): DdlMigration[] {
-  return TABLES.map((table) => ({ name: migrationName(table), ddl: TABLE_DDL[table] }));
+  return [
+    ...TABLES.map((table) => ({ name: migrationName(table), ddl: TABLE_DDL[table] })),
+    ...EXTRA_MIGRATIONS,
+  ];
 }
 
 let schemaRun: Promise<string[]> | null = null;
