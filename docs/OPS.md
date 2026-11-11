@@ -171,3 +171,39 @@ recompute finished { versionName: '2.4', verdict: 'no-go', confidence: 'low',
 La confiance basse est honnête : aucun dépôt n'est relié à ces tickets et la
 correspondance composant → service n'est pas encore renseignée dans les réglages
 du projet.
+
+### Couverture réelle observée et points ouverts
+
+Le dossier de la version 2.4 déclare honnêtement ses sources :
+
+| Source | État | Pourquoi |
+|---|---|---|
+| `jira` | ok | tickets, liens, changelog lus au nom de l'app |
+| `service-map` | ok | depuis la politique (écran de réglages ou `RI_DEFAULT_POLICY_JSON`) |
+| `confluence` | partial | une page liée lue, les autres non résolues |
+| `development` | unavailable | **aucun dépôt GitHub/Bitbucket relié au site** : `COMP-02/03`, `QUAL-01/02` restent muets |
+| `teamwork-graph` | unavailable | scopes `read:graph:*` non accordés (il faut un administrateur d'organisation) |
+| `jsm` | unavailable | **point ouvert** : la JQL `project IN ("ITO") AND issuetype = "[System] Incident"` répond 200 avec un token utilisateur, mais l'appel `asApp()` échoue et le collecteur le traduit en `unavailable` (il n'écrit jamais un bilan vide à la place). À instruire avec les logs détaillés de l'app. |
+
+Conséquence assumée : la confiance reste `low` et les notes de couverture le disent
+(`confidence.low.detail` : « aucun commit pour 16 tickets sur 16 »,
+`coverage.service.missing` : 14 tickets sans service connu). C'est le
+comportement voulu par le SPEC §15 — l'absence de donnée n'est jamais présentée
+comme une bonne nouvelle.
+
+### Politique par projet sans navigateur
+
+`RI_DEFAULT_POLICY_JSON` (variable d'environnement de l'app) fournit la politique
+utilisée tant qu'aucune politique n'est enregistrée pour le projet :
+
+```bash
+forge variables set RI_DEFAULT_POLICY_JSON \
+  '{"serviceMap":[{"serviceId":"svc-checkout-api","serviceName":"checkout-api","jiraComponent":"checkout-api","jsmService":"checkout-api"}],"jsmProjectKeys":["ITO"],"waiverApprovers":["<accountId>"],"defaultWaiverHours":48}' \
+  -e production
+forge deploy -e production   # les variables ne s'appliquent pas aux déploiements existants
+```
+
+Une politique enregistrée via l'écran de réglages a toujours priorité. Effet
+mesuré sur le site de démo : couverture services **0/16 → 2/16** et
+`service-map` passé de `empty` à `ok`.
+
