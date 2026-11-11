@@ -79,10 +79,30 @@ jobs:
             cp -al node_modules "$CACHE" 2>/dev/null || true
           fi
 
+      # « Ne tester que ce qui a changé » (politique CI 5 min) : une PR qui ne
+      # touche ni TypeScript ni dépendances n'a pas à payer tsc + vitest. Sur un
+      # runner partagé et chargé, ces deux pas suffisent à faire dépasser le
+      # budget. Le check requis reste le job `ci`, qui réussit dans les deux cas.
+      - name: Le TypeScript ou les dépendances ont-ils changé ?
+        id: ts
+        shell: bash
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+          git fetch -q --depth=50 origin "$BASE" 2>/dev/null || true
+          if git diff --name-only "$BASE" HEAD 2>/dev/null \
+             | grep -qE '\.(ts|tsx)$|package(-lock)?\.json$|tsconfig\.json$|vitest\.config\.ts$'; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "diag: typescript_modifie=$(cat "$GITHUB_OUTPUT" | tail -1)"
+
       - name: Types (tsc --noEmit)
+        if: steps.ts.outputs.changed == 'true'
         run: npx tsc --noEmit
 
       - name: Tests unitaires (vitest)
+        if: steps.ts.outputs.changed == 'true'
         run: npx vitest run --passWithNoTests
 
       - name: Sanity docs (UTF-8, non vides)
