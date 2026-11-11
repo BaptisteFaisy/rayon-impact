@@ -95,6 +95,28 @@ export class ComposedReleaseCollector implements ReleaseCollector {
     };
   }
 
+  /**
+   * Incidents created on the given services within a window (72 h outcome).
+   * Reuses the JSM collector: no second implementation of the query.
+   */
+  async collectIncidents(
+    serviceIds: string[],
+    sinceIso: string,
+    untilIso: string,
+  ): Promise<Incident[]> {
+    if (serviceIds.length === 0) return [];
+    const collected = await new JsmIncidentCollector(this.deps.jsmClient).collect({
+      projectKeys: this.deps.policy.jsmProjectKeys,
+      serviceIds,
+    });
+    const from = new Date(sinceIso).getTime();
+    const to = new Date(untilIso).getTime();
+    return collected.incidents.filter((incident) => {
+      const created = new Date(incident.createdAt).getTime();
+      return !Number.isNaN(created) && created >= from && created <= to;
+    });
+  }
+
   /** Development information from the graph wins over the JQL fallback. */
   private withServices(
     issue: JiraIssue,

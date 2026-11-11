@@ -9,6 +9,7 @@
  */
 import type {
   CollectedRelease,
+  Incident,
   Decision,
   Outcome,
   Policy,
@@ -57,6 +58,16 @@ export interface ReleaseStore {
  */
 export interface ReleaseCollector {
   collect(projectId: string, versionId: string, viewerAccountId: string): Promise<CollectedRelease>;
+  /**
+   * Incidents created on the given services within a window (72 h outcome,
+   * RI-15). Optional: a collector without an incident source leaves it out, and
+   * the pipeline then refuses to write an empty outcome.
+   */
+  collectIncidents?(
+    serviceIds: string[],
+    sinceIso: string,
+    untilIso: string,
+  ): Promise<Incident[]>;
 }
 
 /** Forge LLM adapter: the only place allowed to call the hosted model. */

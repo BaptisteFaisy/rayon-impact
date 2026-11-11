@@ -35,15 +35,26 @@ export interface NarrativeInput {
 /** How many times the model is asked before falling back. */
 export const NARRATIVE_MAX_ATTEMPTS = 3;
 
+// Few-shot sans identifiant réel : un exemple contenant `PAY-131` serait recopié
+// par le modèle puis rejeté par la vérification (identifiant absent des signaux).
+// `TICKETKEY` ne ressemble à aucune clé Jira et ne peut donc pas fuiter.
 const SYSTEM_PROMPT = [
   'You write the release summary shown to the release lead.',
-  'Output EXACTLY 5 to 8 lines of plain text.',
-  'No title, no markdown heading, no bold, no bullet character, no preamble.',
-  'Start every line with a signal code from the list, then a dash, then one sentence.',
-  'Only mention the issues, services, incidents and pages present in the list.',
-  'Say it plainly when the data is missing; absence of data is never good news.',
+  'Output EXACTLY 5 to 8 lines of plain text, and nothing else.',
+  'No title, no markdown heading, no bold, no bullet character, no preamble,',
+  'no closing sentence, no "WARN" or "INFO" prefix.',
+  'Every line starts with one signal code from the input list, then " — ",',
+  'then a single sentence about that signal.',
+  'Copy the identifiers (issue keys, service names, incident keys, page titles)',
+  'exactly as they appear in the input list. Never invent one.',
+  'If the input list is empty, say in 5 lines that no signal is active and state',
+  'the coverage: absence of data is never good news.',
   'Answer in the requested language.',
-].join(' ');
+  '',
+  'Shape example (one input line, then its output line):',
+  'input:  COMP-01 | blocking | active | id-42 | TICKETKEY is still In Progress.',
+  'output: COMP-01 — TICKETKEY is still In Progress.',
+].join('\n');
 
 /** Every string value carried by the signals' messages: the allowed vocabulary. */
 export function allowedTokens(signals: Signal[]): Set<string> {

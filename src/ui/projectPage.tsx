@@ -4,13 +4,21 @@ import { invoke } from '@forge/bridge';
 import { useLocale, useProject, useScreen } from './hooks';
 import { VerdictBanner } from './components/VerdictBanner';
 import { CoverageMeter } from './components/CoverageMeter';
+import { DiffBanner } from './components/DiffBanner';
 import { WaiverDialog } from './components/WaiverDialog';
 import { GraphView } from './components/GraphView';
 import { SignalsTab } from './tabs/SignalsTab';
 import { TeamsTab } from './tabs/TeamsTab';
 import { WaiversTab } from './tabs/WaiversTab';
 import { HistoryTab } from './tabs/HistoryTab';
-import type { ImpactGraph, ImpactedTeam, Locale, ReleaseDossier, Signal } from '../types';
+import type {
+  ImpactGraph,
+  ImpactedTeam,
+  Locale,
+  ReleaseDossier,
+  Signal,
+  SnapshotDiff,
+} from '../types';
 
 /**
  * The main screen: version picker, verdict, coverage, written summary, then the
@@ -49,7 +57,9 @@ export function ProjectPage() {
   return (
     <div>
       <VersionPicker rows={rows} selected={versionId} onSelect={setVersionId} locale={locale} />
-      {versionId ? <Dossier versionId={versionId} locale={locale} /> : null}
+      {versionId ? (
+        <Dossier versionId={versionId} projectId={project.id ?? ''} locale={locale} />
+      ) : null}
     </div>
   );
 }
@@ -94,10 +104,19 @@ function VersionPicker({
 }
 
 /** Loads the saved dossier and the impacted teams, then renders the tabs. */
-function Dossier({ versionId, locale }: { versionId: string; locale: Locale }) {
+function Dossier({
+  versionId,
+  projectId,
+  locale,
+}: {
+  versionId: string;
+  projectId: string;
+  locale: Locale;
+}) {
   const dossier = useScreen<ReleaseDossier | null>('screen.projectPage', { versionId });
   const graph = useScreen<ImpactGraph | null>('screen.impactGraph', { versionId });
   const teams = useImpactedTeams(versionId);
+  const diff = useScreen<SnapshotDiff | null>('screen.projectDiff', { projectId, versionId });
   const [waiving, setWaiving] = useState<Signal | null>(null);
   const [tab, setTab] = useState(0);
 
@@ -114,6 +133,7 @@ function Dossier({ versionId, locale }: { versionId: string; locale: Locale }) {
         locale={locale}
       />
       <CoverageMeter coverage={snapshot.coverage} locale={locale} />
+      <DiffBanner diff={diff.data} locale={locale} />
       <div style={{ padding: '0 12px' }}>
         <p style={{ whiteSpace: 'pre-line' }}>{snapshot.narrative}</p>
       </div>
@@ -126,6 +146,7 @@ function Dossier({ versionId, locale }: { versionId: string; locale: Locale }) {
         locale={locale}
         waiving={waiving}
         onWaive={setWaiving}
+        versionId={versionId}
       />
       {waiving ? (
         <WaiverDialog
@@ -149,8 +170,9 @@ function DossierTabs(props: {
   locale: Locale;
   waiving: Signal | null;
   onWaive: (s: Signal | null) => void;
+  versionId: string;
 }) {
-  const { tab, onTab, dossier, graph, teams, locale, waiving, onWaive } = props;
+  const { tab, onTab, dossier, graph, teams, locale, waiving, onWaive, versionId } = props;
   const { signals, waivers, decisions, outcome } = dossier;
   return (
     <div style={{ padding: '0 12px' }}>
@@ -163,7 +185,13 @@ function DossierTabs(props: {
           <Tab>{locale === 'fr' ? 'Historique' : 'History'}</Tab>
         </TabList>
         <TabPanel>
-          <SignalsTab signals={signals} locale={locale} waiving={waiving} onWaive={onWaive} />
+          <SignalsTab
+            signals={signals}
+            locale={locale}
+            waiving={waiving}
+            onWaive={onWaive}
+            versionId={versionId}
+          />
         </TabPanel>
         <TabPanel>
           <GraphPanel graph={graph} locale={locale} />
