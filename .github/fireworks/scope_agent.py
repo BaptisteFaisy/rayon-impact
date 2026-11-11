@@ -41,7 +41,10 @@ MAX_EXCERPT_LINES = 5
 MAX_TOKENS = 3_000
 TEMPERATURE = 0.1
 CALL_TIMEOUT_S = 90
-COMMENT_PREFIX = "_fireworks · agent de périmètre (MiniMax M3.1 Flash)_"
+# Le compte rendu nomme le modele reellement configure : le fournisseur
+# n'est plus Fireworks (compte suspendu) mais celui de FIREWORKS_BASE_URL.
+COMMENT_PREFIX = "_fireworks · agent de périmètre (%s)_" % (
+    os.environ.get("FIREWORKS_MODEL") or MODEL_DEFAULT)
 MARKER = "<!-- automerge-scope sha=%s -->"
 LABEL_HUMAN = "intervention-humaine"
 PUCE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+`?([^`\s]+)`?"
