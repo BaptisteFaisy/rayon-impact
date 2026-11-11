@@ -93,9 +93,20 @@ export class FakeStore implements ReleaseStore {
     return this.waivers.get(versionId) ?? [];
   }
 
+  async getWaiverById(waiverId: string): Promise<Waiver | null> {
+    for (const list of this.waivers.values()) {
+      const found = list.find((waiver) => waiver.id === waiverId);
+      if (found) return found;
+    }
+    return null;
+  }
+
+  /** Upsert by id, like the real store (`insertOrUpdate(..., ['id'])`): a
+   * closed waiver replaces its live copy and is never deleted (SPEC §15). */
   async saveWaiver(waiver: Waiver): Promise<void> {
     const list = this.waivers.get(waiver.versionId) ?? [];
-    this.waivers.set(waiver.versionId, [...list, waiver]);
+    const kept = list.filter((candidate) => candidate.id !== waiver.id);
+    this.waivers.set(waiver.versionId, [...kept, waiver]);
   }
 
   async getDecisions(versionId: string): Promise<Decision[]> {

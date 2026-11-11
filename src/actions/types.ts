@@ -1,5 +1,5 @@
 /**
- * Contracts of the 7 Rovo / MCP actions (SPEC §10, R2).
+ * Contracts of the 8 Rovo / MCP actions (SPEC §10, R2).
  *
  * One action = one manifest entry (`action`, reused by `rovo:mcp` tools) + one
  * pure handler `(input, deps) => output`. The platform only accepts `string |
@@ -48,7 +48,8 @@ export type ActionKey =
   | 'list-impacted-teams'
   | 'simulate-without'
   | 'get-release-outcome'
-  | 'request-waiver';
+  | 'request-waiver'
+  | 'close-waiver';
 
 /** Manifest verbs actually used by this app (R2 §1.2). */
 export type ActionVerb = 'GET' | 'CREATE';

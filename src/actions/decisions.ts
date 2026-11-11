@@ -1,11 +1,13 @@
 /**
- * Decision actions: `simulate-without`, `request-waiver` (SPEC §10).
+ * Decision actions: `simulate-without`, `request-waiver`, `close-waiver`
+ * (SPEC §10).
  *
  * `simulate-without` replays the deterministic verdict on the saved signals
  * minus a set of tickets — no live collection, no guess (SPEC §12, RI-13).
  * `request-waiver` either creates the waiver or answers with a motivated
- * refusal: the refusal rules are the engine's (src/engine/waiver.ts), never
- * recopied here (RI-07).
+ * refusal; `close-waiver` closes it the same way (never deletes, SPEC §15).
+ * The refusal rules are the engine's (src/engine/waiver.ts), never recopied
+ * here (RI-07).
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
@@ -15,10 +17,15 @@ import {
   signalsWithoutIssues,
   simulateWithout as simulateVerdict,
 } from '../engine/simulate';
-import { grantWaiver, validateWaiverRequest, type WaiverRequest } from '../engine/waiver';
-import type { Policy, Viewer } from '../types';
+import {
+  closeWaiver,
+  grantWaiver,
+  validateWaiverRequest,
+  type WaiverRequest,
+} from '../engine/waiver';
+import type { MessageRef, Policy, Viewer, Waiver } from '../types';
 import { requireDossier, requirePolicy } from './release';
-import { ActionError, parseIssueKeys } from './types';
+import { ActionError, optionalString, parseIssueKeys, requireString } from './types';
 import type {
   ActionDeps,
   RequestWaiverInput,
@@ -149,4 +156,92 @@ export async function requestWaiver(
     waiverId: waiver.id,
   });
   return { granted: true, waiver };
+}
+
+/* ---------------------------------------------------------- close-waiver */
+
+/**
+ * `close-waiver` contract. Kept here, next to its handler, so `types.ts`
+ * stays under the 500-line limit; same shape as the other actions.
+ */
+export interface CloseWaiverInput {
+  waiverId: string;
+  /** Empty string is a valid payload: the refusal is then motivated (RI-07). */
+  reason: string;
+}
+
+export type CloseWaiverOutput =
+  | { closed: true; waiver: Waiver }
+  | { closed: false; refusal: MessageRef };
+
+export function parseCloseWaiverInput(raw: Record<string, unknown>): CloseWaiverInput {
+  return {
+    waiverId: requireString(raw, 'waiverId'),
+    reason: optionalString(raw, 'reason') ?? '',
+  };
+}
+
+/** Refusal helper: logged once, returned as data — never a platform failure. */
+function closeRefusal(
+  deps: ActionDeps,
+  waiverId: string,
+  refusal: MessageRef,
+): CloseWaiverOutput {
+  deps.logger.log('warn', 'action.close-waiver.refused', {
+    waiverId,
+    reason: refusal.key,
+  });
+  return { closed: false, refusal };
+}
+
+/**
+ * `close-waiver`: the closed waiver, or a motivated refusal (not found,
+ * already closed, missing reason, caller not allowed to waive).
+ *
+ * The refusal rules are the engine's (`validateWaiverRequest`) and the closure
+ * itself is `closeWaiver` — nothing is recopied here (RI-07). A closed waiver
+ * stays in the store forever (SPEC §15: closed, never deleted).
+ */
+export async function closeWaiverAction(
+  input: CloseWaiverInput,
+  deps: ActionDeps,
+): Promise<CloseWaiverOutput> {
+  const found = await deps.store.getWaiverById(input.waiverId);
+  if (!found) {
+    return closeRefusal(deps, input.waiverId, {
+      key: 'waiver.notFound',
+      params: { waiverId: input.waiverId },
+    });
+  }
+  if (found.closedAt) {
+    return closeRefusal(deps, input.waiverId, {
+      key: 'waiver.alreadyClosed',
+      params: { waiverId: found.id, closedAt: found.closedAt },
+    });
+  }
+  const dossier = await requireDossier(deps, found.versionId);
+  const policy = policyForViewer(
+    await requirePolicy(deps, dossier.snapshot.projectId),
+    deps.viewer,
+  );
+  const now = deps.clock.now();
+  const request: WaiverRequest = {
+    versionId: found.versionId,
+    signalCode: found.signalCode,
+    subjectType: found.subjectType,
+    subjectId: found.subjectId,
+    reason: input.reason,
+    grantedBy: deps.viewer.accountId,
+  };
+  const verdict = validateWaiverRequest(request, policy, now);
+  if (!verdict.ok) {
+    return closeRefusal(deps, input.waiverId, verdict.reason);
+  }
+  const closed = closeWaiver(found, now, input.reason.trim());
+  await deps.store.saveWaiver(closed);
+  deps.logger.log('info', 'action.close-waiver.closed', {
+    waiverId: closed.id,
+    versionId: closed.versionId,
+  });
+  return { closed: true, waiver: closed };
 }

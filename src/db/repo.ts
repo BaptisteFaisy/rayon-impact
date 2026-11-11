@@ -185,6 +185,15 @@ export class ForgeReleaseStore implements ReleaseStore {
     return rows.map(rowToWaiver);
   }
 
+  /** One waiver from its id alone (`close-waiver` has no versionId). */
+  async getWaiverById(waiverId: string): Promise<Waiver | null> {
+    const row = await this.first<WaiverRow>(
+      `SELECT ${selectList('waiver')} FROM waiver WHERE id = ? LIMIT 1`,
+      [waiverId],
+    );
+    return row ? rowToWaiver(row) : null;
+  }
+
   async saveWaiver(waiver: Waiver): Promise<void> {
     await insertOrUpdate(this.client, 'waiver', waiverToRow(waiver), ['id']);
   }
