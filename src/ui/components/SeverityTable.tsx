@@ -1,0 +1,85 @@
+import { getSignalDefinition, listSignalCodes } from '../../signals/registry.js';
+import { t } from '../../i18n/index.js';
+import type { Locale, Policy, Severity, SignalCode } from '../../types.js';
+
+/**
+ * Severity table of the settings screen: one row per signal, with its effective
+ * severity and its on/off switch (RI-11).
+ *
+ * Rule: files < 500 lines, functions < 50 lines.
+ */
+
+const SEVERITIES: Severity[] = ['blocking', 'major', 'minor', 'info'];
+
+const cell = {
+  border: '1px solid #DFE1E6',
+  padding: '4px 8px',
+  textAlign: 'left',
+} as const;
+
+export interface SeverityTableProps {
+  policy: Policy;
+  locale: Locale;
+  onChange: (next: Policy) => void;
+}
+
+export function SeverityTable({ policy, locale, onChange }: SeverityTableProps) {
+  return (
+    <table style={{ borderCollapse: 'collapse', marginBottom: 12 }}>
+      <thead>
+        <tr>
+          <th style={cell}>{locale === 'fr' ? 'Signal' : 'Signal'}</th>
+          <th style={cell}>{locale === 'fr' ? 'Gravité' : 'Severity'}</th>
+          <th style={cell}>{locale === 'fr' ? 'Activé' : 'Enabled'}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {listSignalCodes().map((code) => (
+          <SeverityRow key={code} code={code} policy={policy} locale={locale} onChange={onChange} />
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function SeverityRow({ code, policy, locale, onChange }: SeverityTableProps & { code: SignalCode }) {
+  const definition = getSignalDefinition(code);
+  const severity = policy.severityOverrides[code] ?? definition.defaultSeverity;
+  const enabled = !policy.disabledSignals.includes(code);
+
+  function setSeverity(next: Severity) {
+    onChange({
+      ...policy,
+      severityOverrides: { ...policy.severityOverrides, [code]: next },
+    });
+  }
+
+  function setEnabled(next: boolean) {
+    onChange({
+      ...policy,
+      disabledSignals: next
+        ? policy.disabledSignals.filter((item) => item !== code)
+        : [...policy.disabledSignals, code],
+    });
+  }
+
+  return (
+    <tr>
+      <td style={cell}>
+        {code} — {t(definition.title, locale)}
+      </td>
+      <td style={cell}>
+        <select value={severity} onChange={(event) => setSeverity(event.target.value as Severity)}>
+          {SEVERITIES.map((value) => (
+            <option key={value} value={value}>
+              {t({ key: `severity.${value}` }, locale)}
+            </option>
+          ))}
+        </select>
+      </td>
+      <td style={cell}>
+        <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
+      </td>
+    </tr>
+  );
+}
