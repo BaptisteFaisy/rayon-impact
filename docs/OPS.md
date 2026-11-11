@@ -119,9 +119,23 @@ rebase, push avec bail, compte rendu sur la PR. Une résolution qui ne compile
 pas n'est jamais poussée (`compilation_gate.py`). Les saisines sont bornées
 (`quota.py` : cooldown, plafond horaire, 3 par PR en 30 min).
 
-Secrets et variables du dépôt : `FIREWORKS_API_KEY` (secret),
-`FIREWORKS_AGENT_RESOLVE=1`, `FIREWORKS_MODEL`, `AUTOMERGE_PAT` (push et
-auto-merge), `MERGIFY_QUEUE=1`.
+**Fournisseur de modèle : InferHub.** Le compte Fireworks d'origine est suspendu
+(HTTP 412 sur tous les modèles) ; le basculement se fait **sans toucher au code**,
+uniquement par la configuration du dépôt, car l'agent lit `FIREWORKS_BASE_URL` et
+`FIREWORKS_MODEL` :
+
+| Variable / secret | Valeur |
+|---|---|
+| `FIREWORKS_BASE_URL` | `https://api.inferhub.dev/v1/chat/completions` |
+| `FIREWORKS_MODEL` | `combo/cheap` |
+| `FIREWORKS_API_KEY` (secret) | clé InferHub `sk-airo-…` (32 caractères) |
+| `FIREWORKS_AGENT_RESOLVE` | `1` (coupe-circuit : `0`) |
+
+Les noms historiques `FIREWORKS_*` sont conservés à dessein : ce sont les
+variables que lit l'agent, quel que soit le fournisseur derrière.
+
+Autres secrets et variables : `AUTOMERGE_PAT` (push avec bail et auto-merge),
+`MERGIFY_QUEUE=1`.
 
 ## 5. Déployer l'app Forge
 
