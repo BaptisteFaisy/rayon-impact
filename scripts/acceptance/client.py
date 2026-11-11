@@ -109,7 +109,12 @@ class JiraClient:
 
     def search_issues(self, jql):
         """(clé, résumé) des tickets d'une JQL (POST /search ; 50 max au harnais)."""
-        payload = self.require("POST", "/rest/api/3/search", {"jql": jql, "fields": ["summary", "status"], "maxResults": 50})
+        # /rest/api/3/search a été supprimé (HTTP 410) : l'API de recherche est
+        # désormais /rest/api/3/search/jql. L'app l'utilise déjà (jira-client.ts).
+        payload = self.require(
+            "POST", "/rest/api/3/search/jql",
+            {"jql": jql, "fields": ["summary", "status"], "maxResults": 50},
+        )
         return [(i["key"], i.get("fields", {}).get("summary", "")) for i in payload.get("issues", [])]
 
     def get_issue(self, key):

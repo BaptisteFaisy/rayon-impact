@@ -1,4 +1,5 @@
 import type {
+  Signal,
   CollectedRelease,
   ConfluencePage,
   Coverage,
@@ -70,6 +71,25 @@ export function issue(key: string, partial: Partial<JiraIssue> = {}): JiraIssue 
     dev: partial.dev ?? healthyDev(),
     serviceId: partial.serviceId !== undefined ? partial.serviceId : 'svc-checkout-api',
     serviceName: partial.serviceName ?? 'checkout-api',
+    ...partial,
+  };
+}
+
+/** A raised signal, blocking by default: the shape every dossier carries. */
+export function signal(partial: Partial<Signal> = {}): Signal {
+  return {
+    id: 'COMP-01:issue:PAY-131',
+    code: 'COMP-01',
+    severity: 'blocking',
+    status: 'active',
+    subjectType: 'issue',
+    subjectId: 'id-pay-131',
+    finding: { key: 'signal.comp01.finding', params: { key: 'PAY-131' } },
+    evidence: [
+      { subjectType: 'issue', subjectId: 'id-pay-131', label: { key: 'signal.comp01.finding' } },
+    ],
+    detectedAt: '2026-11-11T06:00:00.000Z',
+    firstSeenAt: '2026-11-09T08:30:00.000Z',
     ...partial,
   };
 }

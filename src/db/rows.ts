@@ -36,7 +36,14 @@ export interface ReleaseSnapshotRow {
   previous_snapshot_id: string | null;
 }
 
+/**
+ * `row_key` is the primary key: `id` alone is content-derived
+ * (`CODE:subjectType:subjectId`), so using it as the key made every recompute
+ * OVERWRITE the previous dossier's signals — 30 dossiers out of 31 were left
+ * with zero signals on the live demo site, which silently broke the RI-14 diff.
+ */
 export interface SignalRow {
+  row_key: string;
   id: string;
   snapshot_id: string;
   code: string;
@@ -120,6 +127,7 @@ const SNAPSHOT_COLUMNS = [
 ] as const satisfies readonly (keyof ReleaseSnapshotRow)[];
 
 const SIGNAL_COLUMNS = [
+  'row_key',
   'id',
   'snapshot_id',
   'code',
