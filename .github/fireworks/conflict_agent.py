@@ -63,7 +63,10 @@ MAX_TOKENS = 8_000
 TEMPERATURE = 0.2
 LABEL_OK = "agent-conflit"
 LABEL_HUMAN = "intervention-humaine"
-COMMENT_PREFIX = "_fireworks · agent de conflit (MiniMax M3.1 Flash)_"
+# Le compte rendu nomme le modele reellement configure : le fournisseur
+# n'est plus Fireworks (compte suspendu) mais celui de FIREWORKS_BASE_URL.
+COMMENT_PREFIX = "_fireworks · agent de conflit (%s)_" % (
+    os.environ.get("FIREWORKS_MODEL") or MODEL_DEFAULT)
 REFUSED_PREFIXES = (".github/", ".mergify.yml")
 
 
