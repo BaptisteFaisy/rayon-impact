@@ -125,8 +125,12 @@ describe('DOC-01 — linked page not updated this cycle', () => {
     expect(detectDoc(context(release))).toEqual([]);
   });
 
-  it('raises nothing on the canonical dataset, whose pages are not linked yet', () => {
-    expect(detectDoc(context(paiementsRelease()))).toEqual([]);
+  it('raises DOC-01 for the stale page linked to PAY-127 on the demo dataset', () => {
+    const signals = detectDoc(context(paiementsRelease()));
+    expect(signals).toHaveLength(1);
+    expect(signals[0].code).toBe('DOC-01');
+    expect(signals[0].subjectId).toBe('9001');
+    expect(signals[0].finding.key).toBe('signal.doc01.finding');
   });
 
   it('stays silent when the project disabled DOC-01', () => {

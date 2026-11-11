@@ -1,0 +1,335 @@
+# Rayon d'impact d'une release — manifest Forge
+#
+# App Atlassian Forge (Forge UI / UI Kit 2) installée sur Jira (requis) et
+# Confluence (optionnel). Toutes les formes de modules ci-dessous ont été
+# vérifiées dans docs/research/ (R1 modules Jira UI, R2 action/rovo,
+# R3 trigger/scheduledTrigger/consumer, R4 sql/llm, R5 scopes).
+#
+# Esquisse validée avec `forge lint` (cf. docs/ARCHITECTURE.md).
+app:
+  id: ari:cloud:ecosystem::app/0f7c3d61-4a2e-4c1b-9d55-8b2e7a6f4c19
+  description: >
+    Release impact radius for Jira: the go / go with conditions / no-go verdict
+    for a release, every reason backed by a clickable proof.
+  runtime:
+    name: nodejs22.x
+    architecture: x86_64
+    memoryMB: 512
+  compatibility:
+    jira:
+      required: true
+    confluence:
+      required: false
+
+modules:
+  # ------------------------------------------------------------- écrans (R1)
+  jira:projectPage:
+    - key: rayon-impact-project-page
+      resource: main
+      render: native
+      resolver:
+        function: resolver
+      title: "Rayon d'impact"
+      icon: static/icon.svg
+  jira:issueContext:
+    - key: rayon-impact-issue-context
+      resource: main
+      render: native
+      resolver:
+        function: resolver
+      title: "Rayon d'impact"
+      label: "Impact"
+  jira:projectSettingsPage:
+    - key: rayon-impact-project-settings
+      resource: main
+      render: native
+      resolver:
+        function: resolver
+      title: "Réglages du rayon d'impact"
+  jira:dashboardGadget:
+    - key: rayon-impact-dashboard-gadget
+      resource: main
+      render: native
+      resolver:
+        function: resolver
+      title: "Rayon d'impact"
+      description: "Versions des 14 prochains jours avec leur avis."
+      thumbnail: resource:icon;icon.svg
+      refreshable: true
+
+  # ------------------------------------------------------- déclenchements (R3)
+  trigger:
+    - key: version-lifecycle
+      function: events
+      events:
+        - avi:jira:created:version
+        - avi:jira:updated:version
+        - avi:jira:released:version
+        - avi:jira:unreleased:version
+        - avi:jira:archived:version
+        - avi:jira:deleted:version
+      filter:
+        appIsLicensed: true
+        ignoreSelf: true
+    - key: issue-updated
+      function: events
+      events:
+        - avi:jira:updated:issue
+      filter:
+        appIsLicensed: true
+        ignoreSelf: true
+    - key: issue-links
+      function: events
+      events:
+        - avi:jira:created:issuelink
+        - avi:jira:deleted:issuelink
+      filter:
+        appIsLicensed: true
+        ignoreSelf: true
+  scheduledTrigger:
+    - key: hourly-refresh
+      function: scheduled-hourly
+      interval: hour
+      filter:
+        appIsLicensed: true
+    - key: daily-outcome
+      function: scheduled-daily
+      interval: day
+      filter:
+        appIsLicensed: true
+  consumer:
+    - key: recalc-consumer
+      queue: rayon-recalc
+      function: consumer
+
+  # --------------------------------------------------------- stockage & LLM (R4)
+  sql:
+    - key: main
+      engine: mysql
+  llm:
+    - key: main-llm
+      model:
+        - claude
+
+  # -------------------------------------------------------------- fonctions
+  function:
+    - key: resolver
+      handler: index.handler
+    - key: events
+      handler: index.onEvent
+    - key: scheduled-hourly
+      handler: index.onScheduled
+      timeoutSeconds: 600
+    - key: scheduled-daily
+      handler: index.onScheduled
+      timeoutSeconds: 600
+    - key: consumer
+      handler: index.onMessage
+      timeoutSeconds: 900
+    # Une fonction par action : une action est une fonction Forge ordinaire
+    # dont la signature est (payload, context) — pas un resolver (R2 §2.1).
+    - key: fn-get-release-impact
+      handler: index.dispatch
+    - key: fn-list-release-signals
+      handler: index.dispatch
+    - key: fn-explain-signal
+      handler: index.dispatch
+    - key: fn-list-impacted-teams
+      handler: index.dispatch
+    - key: fn-simulate-without
+      handler: index.dispatch
+    - key: fn-get-release-outcome
+      handler: index.dispatch
+    - key: fn-request-waiver
+      handler: index.dispatch
+
+  # ------------------------------------------------------- actions Rovo / MCP (R2)
+  action:
+    - key: get-release-impact
+      name: Get release impact
+      function: fn-get-release-impact
+      actionVerb: GET
+      description: >
+        Returns the release verdict (go, go with conditions, no-go), the confidence,
+        the written summary and the signal counts for a Jira project version.
+      inputs:
+        projectKey:
+          title: "Project key"
+          type: string
+          required: true
+          description: "Uppercase key of the Jira project, for example PAY."
+        versionName:
+          title: "Version name"
+          type: string
+          required: true
+          description: "Name of the project version, for example 2.4."
+    - key: list-release-signals
+      name: List release signals
+      function: fn-list-release-signals
+      actionVerb: GET
+      description: >
+        Lists the detailed signals raised for a release, with severity, subject and
+        clickable evidence. Optionally filters by severity.
+      inputs:
+        versionId:
+          title: "Version id"
+          type: string
+          required: true
+          description: "Identifier of the release version."
+        severity:
+          title: "Severity filter"
+          type: string
+          required: false
+          description: "Optional filter: blocking, major, minor or info."
+    - key: explain-signal
+      name: Explain signal
+      function: fn-explain-signal
+      actionVerb: GET
+      description: >
+        Explains one signal: what was observed, why it matters, the proof link and
+        how to clear it.
+      inputs:
+        signalId:
+          title: "Signal id"
+          type: string
+          required: true
+          description: "Identifier of the signal, for example COMP-01:issue:10001."
+    - key: list-impacted-teams
+      name: List impacted teams
+      function: fn-list-impacted-teams
+      actionVerb: GET
+      description: >
+        Lists the teams impacted by a release: services, linked tickets and the
+        project they come from.
+      inputs:
+        versionId:
+          title: "Version id"
+          type: string
+          required: true
+          description: "Identifier of the release version."
+    - key: simulate-without
+      name: Simulate without tickets
+      function: fn-simulate-without
+      actionVerb: GET
+      description: >
+        Recomputes the verdict of a release without a given set of tickets, given as
+        a comma separated list of issue keys.
+      inputs:
+        versionId:
+          title: "Version id"
+          type: string
+          required: true
+          description: "Identifier of the release version."
+        issueKeys:
+          title: "Issue keys"
+          type: string
+          required: true
+          description: "Comma separated list of issue keys to leave out, for example PAY-131,PAY-132."
+    - key: get-release-outcome
+      name: Get release outcome
+      function: fn-get-release-outcome
+      actionVerb: GET
+      description: >
+        Returns the decision that was taken on a release and the 72 hour outcome
+        observed after the publication.
+      inputs:
+        versionId:
+          title: "Version id"
+          type: string
+          required: true
+          description: "Identifier of the release version."
+    - key: request-waiver
+      name: Request waiver
+      function: fn-request-waiver
+      actionVerb: CREATE
+      description: >
+        Grants a temporary waiver for a blocking signal, with a mandatory reason and
+        an expiration delay. Returns the created waiver or a motivated refusal.
+      inputs:
+        signalId:
+          title: "Signal id"
+          type: string
+          required: true
+          description: "Identifier of the signal to waive."
+        reason:
+          title: "Reason"
+          type: string
+          required: true
+          description: "Why the signal is accepted for this release."
+        hours:
+          title: "Duration in hours"
+          type: integer
+          required: false
+          description: "How long the waiver stays valid. Defaults to the project policy."
+
+  # ------------------------------------------------------------- agent Rovo (R2)
+  rovo:agent:
+    - key: rayon-impact-agent
+      name: Rayon d'impact
+      description: >
+        Answers release questions from the saved dossier: can we ship, what blocks
+        the next version, which teams are impacted, what happened after the last one.
+      prompt: resource:agent-prompt;prompt.md
+      conversationStarters:
+        - Can we ship 2.4?
+        - What blocks the next release?
+        - Which teams are impacted by 2.4?
+        - What happened after 2.3?
+      actions:
+        - get-release-impact
+        - list-release-signals
+        - explain-signal
+        - list-impacted-teams
+        - simulate-without
+        - get-release-outcome
+        - request-waiver
+      followUpPrompt: Suggest the next useful question about this release.
+
+  # -------------------------------------------------------------- MCP (R2)
+  rovo:mcp:
+    - key: rayon-impact-mcp
+      name: Rayon d'impact
+      tools:
+        - get-release-impact
+        - list-release-signals
+        - explain-signal
+        - list-impacted-teams
+        - simulate-without
+        - get-release-outcome
+        - request-waiver
+
+# ------------------------------------------------------------------- ressources
+resources:
+  - key: main
+    path: src/ui/frontend/index.tsx
+  - key: agent-prompt
+    path: static/agent
+  - key: icon
+    path: static/icon.svg
+
+# --------------------------------------------------------------------- scopes
+# Bloc repris de docs/research/R5-scopes-data-apis.md §1.7 (17 scopes, plafond 50).
+permissions:
+  scopes:
+    # Jira — tickets, versions, liens, historique, recherche
+    - read:jira-work
+    - write:jira-work
+    # Jira Software — information de développement (commits, PR, builds)
+    - read:dev-info:jira
+    # JSM — demandes de service et objets Assets (services)
+    - read:servicedesk-request
+    # Confluence — corps des pages liées
+    - read:confluence-content.all
+    # Teamwork Graph — un scope par type d'objet
+    - read:graph:issue:jira
+    - read:graph:version:jira
+    - read:graph:project:jira
+    - read:graph:issue-remote-link:jira
+    - read:graph:user:atlassian
+    - read:graph:team:atlassian
+    - read:graph:commit:external
+    - read:graph:pull-request:external
+    - read:graph:build:external
+    - read:graph:component:compass
+    - read:graph:service:external
+    - read:graph:page:confluence
