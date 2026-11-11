@@ -7,6 +7,7 @@ import type {
   Verdict,
 } from '../types.js';
 import { t } from '../i18n/index.js';
+import { listSignalCodes } from '../signals/registry.js';
 
 /**
  * Written summary of a release dossier (SPEC §8, RI-06).
@@ -88,7 +89,10 @@ export function verifyNarrative(
   const allowed = allowedTokens(input.signals);
   const lines = summaryLines(text);
 
+  const knownCodes = new Set<string>(listSignalCodes());
   for (const identifier of findIdentifiers(text)) {
+    // A signal code is not an identifier: `COMP-01` names a rule, not a ticket.
+    if (knownCodes.has(identifier)) continue;
     if (!allowed.has(identifier)) {
       violations.push(`identifiant absent des signaux : ${identifier}`);
     }

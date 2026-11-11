@@ -77,8 +77,8 @@ describe('buildImpactGraph', () => {
     expect(edgeCount('owned-by')).toBe(1); // service -> team
     expect(edgeCount('impacts')).toBe(2); // incident -> service
     expect(edgeCount('has-open-pr')).toBe(1); // ticket -> open PR (PAY-131)
-    expect(edgeCount('documents')).toBe(0); // no remote link in the canonical set
-    expect(graph.edges).toHaveLength(32);
+    expect(edgeCount('documents')).toBe(1); // PAY-127 -> page 9001
+    expect(graph.edges).toHaveLength(33);
   });
 
   it('relie une page Confluence aux tickets qui la référencent', () => {

@@ -70,7 +70,19 @@ export const MOB_77 = issue('MOB-77', {
 
 export function paiementsIssues() {
   return [
-    issue('PAY-127', { summary: 'Add SEPA instant credit' }),
+    issue('PAY-127', {
+      summary: 'Add SEPA instant credit',
+      // The integration guide is linked to the ticket and was not updated since
+      // the cycle started: DOC-01 (SPEC §18).
+      remoteLinks: [
+        {
+          id: 'link-pay127-page9001',
+          url: 'https://pay.atlassian.net/wiki/pages/9001',
+          title: 'Integration guide',
+          kind: 'confluence',
+        },
+      ],
+    }),
     issue('PAY-128', { summary: 'Harden 3DS retry path' }),
     issue('PAY-129', {
       summary: 'Upgrade ledger client',
