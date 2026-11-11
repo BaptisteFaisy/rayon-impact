@@ -142,6 +142,13 @@ modules:
       handler: index.dispatch
     - key: fn-request-waiver
       handler: index.dispatch
+    - key: fn-close-waiver
+      handler: index.dispatch
+    # Webtrigger de lecture seule : le harnais de recette lit les dossiers sans
+    # navigateur (scripts/acceptance). Authentification par jeton porté par la
+    # variable d'environnement RI_WEBTRIGGER_TOKEN.
+    - key: fn-dossier-read
+      handler: webtrigger.handler
 
   # ------------------------------------------------------- actions Rovo / MCP (R2)
   action:
@@ -262,6 +269,31 @@ modules:
           required: false
           description: "How long the waiver stays valid. Defaults to the project policy."
 
+    - key: close-waiver
+      name: Close waiver
+      function: fn-close-waiver
+      actionVerb: CREATE
+      description: "Closes a waiver, with a mandatory reason. Returns the closed waiver, or a motivated refusal when it is unknown, already closed, or the caller may not waive. Closed waivers are kept for traceability."
+      inputs:
+        waiverId:
+          title: "Waiver id"
+          type: string
+          required: true
+          description: "Identifier of the waiver to close."
+        reason:
+          title: "Reason"
+          type: string
+          required: true
+          description: "Why the waiver is closed."
+
+  # --------------------------------------------------- webtrigger de lecture
+  webtrigger:
+    - key: dossier-read
+      function: fn-dossier-read
+      urlFormat: v2
+      response:
+        type: dynamic
+
   # ------------------------------------------------------------- agent Rovo (R2)
   rovo:agent:
     - key: rayon-impact-agent
@@ -283,6 +315,7 @@ modules:
         - simulate-without
         - get-release-outcome
         - request-waiver
+        - close-waiver
       followUpPrompt: Suggest the next useful question about this release.
 
   # -------------------------------------------------------------- MCP (R2)
@@ -297,6 +330,7 @@ modules:
         - simulate-without
         - get-release-outcome
         - request-waiver
+        - close-waiver
 
 # ------------------------------------------------------------------- ressources
 resources:
