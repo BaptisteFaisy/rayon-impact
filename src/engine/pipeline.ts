@@ -102,26 +102,55 @@ async function previousSignals(
  * Writes the summary with the language model, then checks it. Falls back to
  * the deterministic summary when the model fails or breaks the rules.
  */
+interface WrittenNarrative {
+  text: string;
+  fromModel: boolean;
+  /** Soft violations kept for the audit trail (`narrativeRejections`). */
+  rejections: string[];
+}
+
+/**
+ * Writes the summary with the language model, then checks it.
+ *
+ * A text citing something absent from the signals is never published (SPEC §8).
+ * A truthful text whose layout is off is retried, then accepted: throwing away
+ * an accurate summary because the model added a title would hide information.
+ */
 async function writeNarrative(
   deps: PipelineDeps,
   payload: { system: string; user: string },
   input: Parameters<typeof verifyNarrative>[1],
-): Promise<{ text: string; fromModel: boolean }> {
+): Promise<WrittenNarrative> {
+  let best: WrittenNarrative | null = null;
+
   for (let attempt = 1; attempt <= NARRATIVE_MAX_ATTEMPTS; attempt += 1) {
     try {
       const text = await deps.narrative.write(payload);
       if (!isNarrativeUsable(text)) continue;
       const check = verifyNarrative(text, input);
-      if (check.ok) return { text, fromModel: true };
-      deps.logger.log('warn', 'synthèse rejetée par la vérification', {
+
+      if (!check.ok) {
+        deps.logger.log('warn', 'synthèse rejetée : élément absent des signaux', {
+          attempt,
+          violations: check.hardViolations.slice(0, 3),
+        });
+        continue;
+      }
+      if (check.softViolations.length === 0) {
+        return { text, fromModel: true, rejections: [] };
+      }
+      best ??= { text, fromModel: true, rejections: check.softViolations.slice(0, 3) };
+      deps.logger.log('warn', 'synthèse juste mais hors format, nouvelle tentative', {
         attempt,
-        violations: check.violations.slice(0, 3),
+        violations: best.rejections,
       });
-    } catch (error) {
+    } catch {
       deps.logger.log('warn', 'le modèle a échoué, nouvelle tentative', { attempt });
     }
   }
-  return { text: fallbackNarrative(input), fromModel: false };
+
+  if (best) return best;
+  return { text: fallbackNarrative(input), fromModel: false, rejections: [] };
 }
 
 /**
@@ -187,7 +216,7 @@ export async function recomputeRelease(
     counts: result.counts,
     narrative: narrative.text,
     narrativeVerified: narrative.fromModel,
-    narrativeRejections: [],
+    narrativeRejections: narrative.rejections,
     graphCachedAt: release.graph?.fetchedAt ?? null,
     previousSnapshotId: previous.id,
   };

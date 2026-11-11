@@ -29,7 +29,7 @@ import type {
 } from '../types';
 import { SEVERITY_ORDER } from '../types';
 import type { SqlClient, SqlParam } from './sql-client';
-import { createForgeSqlClient } from './sql-client';
+import { createForgeSqlClient, sqlLimit } from './sql-client';
 import type { TableName } from './schema';
 import { selectList } from './rows';
 import type { CollectionRow, DecisionRow, OutcomeRow, PolicyRow, ReleaseSnapshotRow, ServiceMapRow, SignalRow, WaiverRow } from './rows';
@@ -122,8 +122,8 @@ export class ForgeReleaseStore implements ReleaseStore {
   async listSnapshots(projectId: string, limit: number): Promise<Snapshot[]> {
     const rows = await this.client.query<ReleaseSnapshotRow>(
       `SELECT ${selectList('release_snapshot')} FROM release_snapshot
-        WHERE project_id = ? ORDER BY computed_at DESC LIMIT ?`,
-      [projectId, clampLimit(limit)],
+        WHERE project_id = ? ORDER BY computed_at DESC LIMIT ${sqlLimit(limit, MAX_LIST_LIMIT)}`,
+      [projectId],
     );
     return rows.map(rowToSnapshot);
   }
@@ -158,8 +158,8 @@ export class ForgeReleaseStore implements ReleaseStore {
 
   async getSignals(snapshotId: string): Promise<Signal[]> {
     const rows = await this.client.query<SignalRow>(
-      `SELECT ${selectList('signal')} FROM signal WHERE snapshot_id = ? ORDER BY code ASC LIMIT ?`,
-      [snapshotId, MAX_SIGNALS_PER_SNAPSHOT],
+      `SELECT ${selectList('signal')} FROM signal WHERE snapshot_id = ? ORDER BY code ASC LIMIT ${sqlLimit(MAX_SIGNALS_PER_SNAPSHOT)}`,
+      [snapshotId],
     );
     return rows.map(rowToSignal).sort(bySeverityThenCode);
   }
@@ -179,8 +179,8 @@ export class ForgeReleaseStore implements ReleaseStore {
   async getWaivers(versionId: string): Promise<Waiver[]> {
     const rows = await this.client.query<WaiverRow>(
       `SELECT ${selectList('waiver')} FROM waiver
-        WHERE version_id = ? ORDER BY granted_at DESC LIMIT ?`,
-      [versionId, MAX_LIST_LIMIT],
+        WHERE version_id = ? ORDER BY granted_at DESC LIMIT ${sqlLimit(MAX_LIST_LIMIT)}`,
+      [versionId],
     );
     return rows.map(rowToWaiver);
   }
@@ -192,8 +192,8 @@ export class ForgeReleaseStore implements ReleaseStore {
   async getDecisions(versionId: string): Promise<Decision[]> {
     const rows = await this.client.query<DecisionRow>(
       `SELECT ${selectList('decision')} FROM decision
-        WHERE version_id = ? ORDER BY decided_at DESC LIMIT ?`,
-      [versionId, MAX_LIST_LIMIT],
+        WHERE version_id = ? ORDER BY decided_at DESC LIMIT ${sqlLimit(MAX_LIST_LIMIT)}`,
+      [versionId],
     );
     return rows.map(rowToDecision);
   }
@@ -250,8 +250,8 @@ export class ForgeReleaseStore implements ReleaseStore {
     if (!row) return null;
     const entries = await this.client.query<ServiceMapRow>(
       `SELECT ${selectList('service_map')} FROM service_map
-        WHERE project_id = ? ORDER BY service_id ASC LIMIT ?`,
-      [projectId, MAX_SERVICE_MAP_ENTRIES],
+        WHERE project_id = ? ORDER BY service_id ASC LIMIT ${sqlLimit(MAX_SERVICE_MAP_ENTRIES)}`,
+      [projectId],
     );
     return rowToPolicy(row, rowsToServiceMap(entries));
   }

@@ -38,6 +38,8 @@ export interface CollectorDeps {
   graphRunner: GraphRunner | null;
   /** Cloud id, needed to build the ARIs the graph expects. */
   cloudId: string | null;
+  /** Site-specific custom field holding "affected services" (SPEC §7, source 2). */
+  affectedServicesFieldId?: string;
   clock: Clock;
   logger: Logger;
 }
@@ -60,6 +62,9 @@ export class ComposedReleaseCollector implements ReleaseCollector {
       client: this.deps.jiraClient,
       policy,
       clock: this.deps.clock,
+      ...(this.deps.affectedServicesFieldId
+        ? { affectedServicesFieldId: this.deps.affectedServicesFieldId }
+        : {}),
     });
     const base = await jira.collect(projectId, versionId, viewerAccountId);
 

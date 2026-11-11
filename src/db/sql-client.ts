@@ -75,6 +75,17 @@ async function requireSql() {
 }
 
 /** The production `SqlClient`: `sql.prepare(q).bindParams(...).execute()`. */
+/**
+ * `LIMIT` refuses a bound parameter on Forge SQL (TiDB error 1210,
+ * "Incorrect arguments to LIMIT"): the bound value reaches MySQL as a string.
+ * The limit is therefore inlined, after being coerced to a safe integer.
+ */
+export function sqlLimit(limit: number, max = 1000): number {
+  const value = Number(limit);
+  if (!Number.isFinite(value)) return max;
+  return Math.max(1, Math.min(Math.trunc(value), max));
+}
+
 export function createForgeSqlClient(): SqlClient {
   return {
     async query<Row>(statement: string, params: readonly SqlParam[] = []): Promise<Row[]> {

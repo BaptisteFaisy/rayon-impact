@@ -17,6 +17,8 @@ import Resolver from '@forge/resolver';
 import { Queue } from '@forge/events';
 import api from '@forge/api';
 import { createStore } from './db/repo';
+import { defineSchemaOnce } from './db/schema';
+import { SITE_CONFIG } from './config';
 import { createJiraClient } from './collect/jira-client';
 import { createJsmClient } from './collect/jsm';
 import { createConfluenceClient } from './collect/confluence';
@@ -87,6 +89,20 @@ const jobQueue: JobQueue = {
 
 /* ---------------------------------------------------------- dependencies */
 
+/**
+ * Applies the SQL schema once per warm runtime (SPEC §13). A failure is logged,
+ * never thrown: a missing table must not take the whole invocation down.
+ */
+async function ensureSchema(): Promise<void> {
+  try {
+    await defineSchemaOnce();
+  } catch (error) {
+    logger.log('warn', 'schema SQL indisponible', {
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
 /** The dossier index: saved dossiers only, never a live collection. */
 function buildIndex(store: ReleaseStore): DossierIndex {
   return {
@@ -116,7 +132,8 @@ function buildIndex(store: ReleaseStore): DossierIndex {
 }
 
 /** One dependency graph per invocation: `createStore()` opens SQL lazily. */
-function createDeps(context: ForgeContext): ActionDeps {
+async function createDeps(context: ForgeContext): Promise<ActionDeps> {
+  await ensureSchema();
   const store: ReleaseStore = createStore();
   return {
     store,
@@ -237,7 +254,11 @@ const refusal = (error: unknown): unknown =>
 export async function dispatch(payload: ForgePayload, context: ForgeContext): Promise<unknown> {
   const key = actionKeyOf(payload, context);
   try {
-    return { ok: true, action: key, result: await runAction(key, payload, createDeps(context)) };
+    return {
+      ok: true,
+      action: key,
+      result: await runAction(key, payload, await createDeps(context)),
+    };
   } catch (error) {
     return refusal(error);
   }
@@ -250,7 +271,7 @@ const resolver = new Resolver();
 for (const key of ACTION_KEYS) {
   resolver.define(key, async (request: { payload?: ForgePayload; context: ForgeContext }) => {
     try {
-      return await runAction(key, request.payload ?? {}, createDeps(request.context));
+      return await runAction(key, request.payload ?? {}, await createDeps(request.context));
     } catch (error) {
       return refusal(error);
     }
@@ -258,8 +279,8 @@ for (const key of ACTION_KEYS) {
 }
 
 for (const [key, screen] of Object.entries(SCREENS)) {
-  resolver.define(key, (request: { payload?: ForgePayload; context: ForgeContext }) =>
-    screen(request.payload ?? {}, createDeps(request.context)),
+  resolver.define(key, async (request: { payload?: ForgePayload; context: ForgeContext }) =>
+    screen(request.payload ?? {}, await createDeps(request.context)),
   );
 }
 
@@ -275,7 +296,10 @@ function buildCollector(
   viewerAccountId: string,
 ): PipelineDeps['collector'] {
   const jiraClient = createJiraClient();
-  const jsmClient = createJsmClient(api.asApp().requestJira as unknown as ForgeRequest);
+  const jsmClient = createJsmClient(api.asApp().requestJira as unknown as ForgeRequest, {
+    affectedServicesFieldId: SITE_CONFIG.affectedServicesFieldId,
+    incidentIssueType: SITE_CONFIG.incidentIssueType,
+  });
   const confluenceClient = createConfluenceClient(
     api.asApp().requestConfluence as unknown as ForgeRequest,
   );
@@ -290,6 +314,7 @@ function buildCollector(
     confluenceClient,
     graphRunner,
     cloudId,
+    affectedServicesFieldId: SITE_CONFIG.affectedServicesFieldId,
     clock,
     logger,
   });
@@ -297,6 +322,7 @@ function buildCollector(
 
 /** Pipeline collaborators, assembled for one project. */
 async function pipelineDeps(projectId: string, cloudId: string | null): Promise<PipelineDeps> {
+  await ensureSchema();
   const store: ReleaseStore = createStore();
   const policy = await resolvePolicy(store, projectId);
   return {
@@ -315,6 +341,7 @@ export async function onEvent(event: JiraEventLike): Promise<RecomputeMessage[]>
 
 /** `scheduledTrigger` modules: hourly refresh and the 72 h outcome check. */
 export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeMessage[]> {
+  await ensureSchema();
   const store: ReleaseStore = createStore();
   const versions: ScheduledVersionSource = {
     async listOpenVersions() {
@@ -352,8 +379,29 @@ export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeM
   });
 }
 
+/**
+ * A queued event arrives wrapped: `@forge/events` delivers an `AsyncEvent`
+ * whose `body` is what `queue.push({ body })` carried (R3 §3). Observed live on
+ * the demo site: reading the envelope directly yields `versionId: undefined`.
+ */
+function readMessage(event: unknown): RecomputeMessage {
+  const envelope = event as { body?: unknown } | null;
+  const candidate = (envelope?.body ?? event) as RecomputeMessage | undefined;
+  if (
+    !candidate ||
+    typeof candidate.versionId !== 'string' ||
+    typeof candidate.projectId !== 'string'
+  ) {
+    throw new Error(
+      'Recompute message illisible : projectId et versionId sont requis dans le corps.',
+    );
+  }
+  return candidate;
+}
+
 /** `consumer` module: drains one recompute message. */
-export async function onMessage(message: RecomputeMessage): Promise<unknown> {
+export async function onMessage(event: unknown): Promise<unknown> {
+  const message = readMessage(event);
   const deps = await pipelineDeps(message.projectId, null);
   const recompute: RecomputeFn = async (pipeline, request) =>
     recomputeRelease(pipeline, request);

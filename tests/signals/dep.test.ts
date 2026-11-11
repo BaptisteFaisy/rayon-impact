@@ -119,6 +119,15 @@ describe('DEP-01 — bloqué par un ticket ouvert', () => {
     expect(only(detectDep(ctx), 'DEP-01')).toHaveLength(1);
   });
 
+  it('sens du lien : un ticket qui BLOQUE un ticket ouvert ne lève pas DEP-01', () => {
+    // SPEC §7 : DEP-01 vise le ticket « bloqué par » un ticket encore ouvert.
+    // Un ticket de la version qui en bloque un autre n'est pas retenu par lui.
+    const ctx = ctxWith(
+      oneIssue(issue('PAY-130', { links: [blockingLink({ inward: false })] })),
+    );
+    expect(only(detectDep(ctx), 'DEP-01')).toHaveLength(0);
+  });
+
   it('cas limite : lien non bloquant → aucun signal', () => {
     const ctx = ctxWith(
       oneIssue(issue('PAY-130', { links: [blockingLink({ type: 'Relates' })] })),

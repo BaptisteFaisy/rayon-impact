@@ -37,8 +37,9 @@ export const NARRATIVE_MAX_ATTEMPTS = 3;
 
 const SYSTEM_PROMPT = [
   'You write the release summary shown to the release lead.',
-  'Between 5 and 8 lines, no preamble, no markdown headings.',
-  'Every line must cite at least one signal code from the list.',
+  'Output EXACTLY 5 to 8 lines of plain text.',
+  'No title, no markdown heading, no bold, no bullet character, no preamble.',
+  'Start every line with a signal code from the list, then a dash, then one sentence.',
   'Only mention the issues, services, incidents and pages present in the list.',
   'Say it plainly when the data is missing; absence of data is never good news.',
   'Answer in the requested language.',
@@ -59,7 +60,16 @@ export function allowedTokens(signals: Signal[]): Set<string> {
 function collectTokens(ref: MessageRef, into: Set<string>): void {
   if (!ref?.params) return;
   for (const value of Object.values(ref.params)) {
-    if (typeof value === 'string' && value.length > 0) into.add(value);
+    if (typeof value !== 'string' || value.length === 0) continue;
+    into.add(value);
+    // A param may carry a list ("PAY-127, PAY-128"): every element is allowed
+    // too, otherwise a truthful summary citing one of them would be rejected.
+    if (value.includes(',')) {
+      for (const part of value.split(',')) {
+        const token = part.trim();
+        if (token.length > 0) into.add(token);
+      }
+    }
   }
 }
 
@@ -77,15 +87,31 @@ export function summaryLines(text: string): string[] {
     .filter((line) => line.length > 0);
 }
 
+export interface NarrativeCheck {
+  /** No hard violation: the text may be published. */
+  ok: boolean;
+  /** SPEC §8: a ticket/service/incident absent from the signals. Blocking. */
+  hardViolations: string[];
+  /** Formatting: line count, one code per line. Retried, never blocking. */
+  softViolations: string[];
+  violations: string[];
+}
+
 /**
- * Checks a candidate summary against the signals: identifiers, service names,
- * line count and signal-code citation.
+ * Checks a candidate summary against the signals.
+ *
+ * Two levels, because a real model does not always respect the layout:
+ * - **hard** (SPEC §8): the text mentions a ticket, service, incident or page
+ *   that is not in the signals. Such a text is never published.
+ * - **soft**: 5 to 8 lines, one signal code per line. Retried, and accepted
+ *   after the attempts rather than throwing away a truthful summary.
  */
 export function verifyNarrative(
   text: string,
   input: NarrativeInput,
-): { ok: boolean; violations: string[] } {
-  const violations: string[] = [];
+): NarrativeCheck {
+  const hardViolations: string[] = [];
+  const softViolations: string[] = [];
   const allowed = allowedTokens(input.signals);
   const lines = summaryLines(text);
 
@@ -94,29 +120,34 @@ export function verifyNarrative(
     // A signal code is not an identifier: `COMP-01` names a rule, not a ticket.
     if (knownCodes.has(identifier)) continue;
     if (!allowed.has(identifier)) {
-      violations.push(`identifiant absent des signaux : ${identifier}`);
+      hardViolations.push(`identifiant absent des signaux : ${identifier}`);
     }
   }
 
   for (const service of input.serviceNames ?? []) {
     if (text.includes(service) && !allowed.has(service)) {
-      violations.push(`service absent des signaux : ${service}`);
+      hardViolations.push(`service absent des signaux : ${service}`);
     }
   }
 
   if (lines.length < 5 || lines.length > 8) {
-    violations.push(`la synthèse doit tenir en 5 à 8 lignes (${lines.length} trouve(s))`);
+    softViolations.push(`la synthèse doit tenir en 5 à 8 lignes (${lines.length} trouve(s))`);
   }
 
   const codes = new Set(input.signals.map((signal) => signal.code));
   for (const line of lines) {
     const cited = [...codes].some((code) => line.includes(code));
     if (!cited) {
-      violations.push(`ligne sans code de signal : ${line.slice(0, 60)}`);
+      softViolations.push(`ligne sans code de signal : ${line.slice(0, 60)}`);
     }
   }
 
-  return { ok: violations.length === 0, violations };
+  return {
+    ok: hardViolations.length === 0,
+    hardViolations,
+    softViolations,
+    violations: [...hardViolations, ...softViolations],
+  };
 }
 
 /** A non-empty text without an error marker is usable. */

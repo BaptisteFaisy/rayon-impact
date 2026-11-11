@@ -31,6 +31,7 @@ export function createLlmNarrativeWriter(logger?: Logger): NarrativeWriter {
   return {
     async write(payload: { system: string; user: string }): Promise<string> {
       const model = await pickModel();
+      logger?.log('debug', 'synthese demandee au modele', { model });
       const response = await chat({
         model,
         temperature: 0.2,
@@ -40,12 +41,30 @@ export function createLlmNarrativeWriter(logger?: Logger): NarrativeWriter {
           { role: 'user', content: payload.user },
         ],
       });
-      const content = response.choices[0]?.message?.content;
-      const text = typeof content === 'string' ? content : '';
+      const choice = response.choices[0];
+      const content = choice?.message?.content;
+      const text = extractText(content);
       if (!text) {
-        logger?.log('warn', 'le modèle a renvoyé une réponse vide');
+        logger?.log('warn', 'le modèle a renvoyé une réponse vide', {
+          model,
+          finishReason: choice?.finish_reason ?? null,
+          contentType: Array.isArray(content) ? 'array' : typeof content,
+        });
       }
       return text;
     },
   };
+}
+
+/** Forge LLM returns either a string or an array of `{ type: 'text', text }` parts. */
+export function extractText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((part) => {
+      if (typeof part === 'string') return part;
+      const item = part as { text?: unknown } | null;
+      return typeof item?.text === 'string' ? item.text : '';
+    })
+    .join('');
 }
