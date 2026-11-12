@@ -85,6 +85,29 @@ capture mécanique montre l'effet, sans interprétation.
 Tant que ces quatre étapes ne sont pas jouées, le harnais les saute **avec la
 raison exacte** : il ne masque rien, il dit pourquoi.
 
+**Suite : le module « réglages » et la page projet.** Après la migration, le panneau du ticket
+rend (capture ci-dessus), mais les modules `jira:projectSettingsPage` et `jira:projectPage`
+restaient vides. La trace a été obtenue en journalisant, côté résolveur, ce que le module
+avait reçu — le journal de production dit tout :
+
+```
+WARN ecran en erreur {
+  key: 'screen.projectSettings',
+  payload: [ 'projectId' ],
+  extension: '{"project":{"key":"PAY","type":"software","id":"10234"},"type":"jira:projectSettingsPage", …}',
+  message: 'Screen payload needs a "projectId" string.'
+}
+```
+
+Le contexte du **résolveur** connaît le projet (`extension.project.id = 10234`) ; celui que la
+**vue** reçoit ne le porte pas toujours. Le résolveur complète donc la charge utile
+(`withProjectId`) et, quand un écran échoue, il journalise et répond un refus au lieu de
+laisser le module vide — et les écrans affichent désormais l'erreur au lieu d'un squelette
+infini. Après ce correctif, l'erreur « Cannot read properties of undefined (reading
+'COMP-01') » a disparu ; **le rendu complet de ces deux modules reste à faire** (écart ouvert,
+suivi dans l'issue du dépôt).
+
+
 ## Rejouer la preuve
 
 ```bash
