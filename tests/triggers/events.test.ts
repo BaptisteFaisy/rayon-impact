@@ -268,3 +268,42 @@ describe('triggers/events — unrecognised events', () => {
     expect(queue.published).toEqual([]);
   });
 });
+
+/* --------------------------------------- regroupé, jamais jeté (SPEC §12) */
+
+describe('triggers/events — la fenêtre reporte au lieu de jeter', () => {
+  it('conserve la demande tombée dans la fenêtre', async () => {
+    const { deps, queue } = setup();
+
+    await onJiraEvent(released, deps);
+    await onJiraEvent(released, deps);
+
+    expect(queue.published).toHaveLength(1);
+    const deferred = await deps.gate.deferredRequest('ver-24');
+    expect(deferred?.versionId).toBe('ver-24');
+    expect(deferred?.reason).toBe('event');
+  });
+
+  it('efface la demande conservée dès qu’un recalcul est publié', async () => {
+    const { deps, clock } = setup();
+
+    await onJiraEvent(released, deps);
+    await onJiraEvent(released, deps);
+    clock.set(AFTER_MINUTE);
+    await onJiraEvent(released, deps);
+
+    await expect(deps.gate.deferredRequest('ver-24')).resolves.toBeNull();
+  });
+
+  it('journalise le report au niveau debug, avec la version', async () => {
+    const { deps, logger } = setup();
+
+    await onJiraEvent(released, deps);
+    await onJiraEvent(released, deps);
+
+    const reports = logger.entries.filter((entry) => entry.message.includes('deferred'));
+    expect(reports).toHaveLength(1);
+    expect(reports[0]?.level).toBe('debug');
+    expect(reports[0]?.meta?.versionId).toBe('ver-24');
+  });
+});

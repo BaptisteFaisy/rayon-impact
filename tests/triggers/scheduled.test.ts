@@ -222,3 +222,48 @@ describe('triggers/scheduled — module routing and coalescing', () => {
     );
   });
 });
+
+/* ------------------------------- filet de sécurité des demandes reportées */
+
+const deferredMessage: RecomputeMessage = {
+  projectId: 'proj-pay',
+  versionId: 'ver-24',
+  reason: 'event',
+  requestedAt: hoursBefore(2),
+};
+
+describe('triggers/scheduled — le balayage horaire rejoue les demandes reportées', () => {
+  it('republie ce que la fenêtre de regroupement a retenu', async () => {
+    const { deps, published } = setup({ open: [] });
+    await deps.gate.deferRequest(deferredMessage, hoursBefore(2));
+
+    await onScheduled({ context: { moduleKey: 'hourly-refresh' } }, deps);
+
+    expect(published).toHaveLength(1);
+    expect(published[0]?.versionId).toBe('ver-24');
+    expect(published[0]?.reason).toBe('event');
+    await expect(deps.gate.deferredRequest('ver-24')).resolves.toBeNull();
+  });
+
+  it('coalesce une demande reportée et le rafraîchissement de la même version', async () => {
+    const { deps, published } = setup({ open: [open24] });
+    await deps.gate.deferRequest(deferredMessage, hoursBefore(2));
+
+    await onScheduled({ context: { moduleKey: 'hourly-refresh' } }, deps);
+
+    expect(published).toHaveLength(1);
+    // La raison la plus forte l’emporte, la demande la plus ancienne est datée.
+    expect(published[0]?.reason).toBe('event');
+    expect(published[0]?.requestedAt).toBe(hoursBefore(2));
+  });
+
+  it('le module outcome ne touche pas aux demandes reportées', async () => {
+    const { deps, published } = setup({ released: [] });
+    await deps.gate.deferRequest(deferredMessage, hoursBefore(2));
+
+    await onScheduled({ context: { moduleKey: 'daily-outcome' } }, deps);
+
+    expect(published).toEqual([]);
+    await expect(deps.gate.deferredRequest('ver-24')).resolves.not.toBeNull();
+  });
+});

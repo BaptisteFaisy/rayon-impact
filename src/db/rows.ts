@@ -195,6 +195,27 @@ const RECALC_PENDING_COLUMNS = [
   'last_queued_at',
 ] as const satisfies readonly (keyof RecalcPendingRow)[];
 
+/**
+ * One row per version: the recompute request held back by the window
+ * (SPEC §12, « regroupé, jamais jeté »), replayed by the consumer's trailing
+ * pass or by the hourly sweep.
+ */
+export interface RecalcDeferredRow {
+  version_id: string;
+  project_id: string;
+  reason: string;
+  requested_at: string;
+  deferred_at: string;
+}
+
+const RECALC_DEFERRED_COLUMNS = [
+  'version_id',
+  'project_id',
+  'reason',
+  'requested_at',
+  'deferred_at',
+] as const satisfies readonly (keyof RecalcDeferredRow)[];
+
 const COLLECTION_COLUMNS = [
   'version_id',
   'collected_at',
@@ -224,6 +245,7 @@ export const TABLE_COLUMNS: Record<TableName, readonly string[]> = {
   service_map: SERVICE_MAP_COLUMNS,
   collection: COLLECTION_COLUMNS,
   recalc_pending: RECALC_PENDING_COLUMNS,
+  recalc_deferred: RECALC_DEFERRED_COLUMNS,
 };
 
 /** `SELECT` list for a table, e.g. `id, project_id, …`. */

@@ -4,6 +4,8 @@ import {
   type ConsumerDeps,
   type RecomputeFn,
 } from '../../src/triggers/consumer';
+import { createMemoryGate } from '../../src/triggers/events';
+import type { TrailingDeps } from '../../src/triggers/trailing';
 import type {
   LogLevel,
   Logger,
@@ -20,8 +22,11 @@ const message: RecomputeMessage = {
   requestedAt: '2026-11-11T10:00:00.000Z',
 };
 
-// The injected fake never touches the pipeline ports; only the request matters here.
-const pipeline = {} as PipelineDeps;
+// The injected fake never touches the pipeline ports; only the request and the
+// clock matter here (the trailing pass reads the instant the collection started).
+const START = '2026-11-11T10:00:00.000Z';
+const DEFERRED_AT = '2026-11-11T10:00:12.000Z';
+const pipeline = { clock: { now: () => START } } as unknown as PipelineDeps;
 
 function recordingLogger(): Logger & { entries: { level: LogLevel; message: string; meta?: Record<string, unknown> }[] } {
   const entries: { level: LogLevel; message: string; meta?: Record<string, unknown> }[] = [];
@@ -42,9 +47,24 @@ function result(): RecomputeResult {
   };
 }
 
+/** Passe finale inerte par défaut : rien n’est reporté, rien n’est rejoué. */
+function trailingFor(
+  logger: Logger,
+  gate = createMemoryGate(),
+  sleep: (ms: number) => Promise<void> = () => Promise.resolve(),
+): TrailingDeps {
+  return { gate, clock: { now: () => START }, logger, sleep };
+}
+
 function setup(recompute: RecomputeFn, overrides: Partial<ConsumerDeps> = {}) {
   const logger = recordingLogger();
-  const deps: ConsumerDeps = { pipeline, recompute, logger, ...overrides };
+  const deps: ConsumerDeps = {
+    pipeline,
+    recompute,
+    logger,
+    trailing: trailingFor(logger),
+    ...overrides,
+  };
   return { deps, logger };
 }
 
@@ -126,5 +146,68 @@ describe('triggers/consumer — onMessage', () => {
       await onMessage({ ...message, reason }, deps);
       expect(recompute.mock.calls[0]?.[1].reason).toBe(reason);
     }
+  });
+});
+
+/* ------------------------------------------- passe finale (SPEC §12) */
+
+describe('triggers/consumer — passe finale des demandes reportées', () => {
+  it('rejoue la demande retenue par la fenêtre, après le recalcul principal', async () => {
+    const recompute = vi.fn<RecomputeFn>(async () => result());
+    const gate = createMemoryGate();
+    const slept: number[] = [];
+    const { deps } = setup(recompute, {
+      trailing: trailingFor(recordingLogger(), gate, async (ms: number) => {
+        slept.push(ms);
+      }),
+    });
+    await gate.markQueued(message.versionId, START);
+    await gate.deferRequest({ ...message, requestedAt: DEFERRED_AT }, DEFERRED_AT);
+
+    const received = await onMessage(message, deps);
+
+    expect(received).toEqual(result());
+    expect(recompute).toHaveBeenCalledTimes(2);
+    expect(slept).toEqual([60_000]);
+    await expect(gate.deferredRequest(message.versionId)).resolves.toBeNull();
+  });
+
+  it('n’enclenche aucune passe finale quand le recalcul principal échoue', async () => {
+    const recompute = vi.fn<RecomputeFn>(async () => {
+      throw new Error('collector unavailable');
+    });
+    const gate = createMemoryGate();
+    const { deps } = setup(recompute, { trailing: trailingFor(recordingLogger(), gate) });
+    await gate.markQueued(message.versionId, START);
+    await gate.deferRequest({ ...message, requestedAt: DEFERRED_AT }, DEFERRED_AT);
+
+    await expect(onMessage(message, deps)).rejects.toThrow('collector unavailable');
+
+    expect(recompute).toHaveBeenCalledTimes(1);
+    // La demande reste en place : le balayage horaire la rejouera.
+    await expect(gate.deferredRequest(message.versionId)).resolves.not.toBeNull();
+  });
+
+  it('un échec de la passe finale ne fait pas perdre le résultat principal', async () => {
+    const recompute = vi.fn<RecomputeFn>(async () => result());
+    const gate = createMemoryGate();
+    const { deps, logger } = setup(recompute, {
+      trailing: {
+        ...trailingFor(recordingLogger(), gate),
+        sleep: async () => {
+          throw new Error('sleep cassé');
+        },
+      },
+    });
+    await gate.markQueued(message.versionId, START);
+    await gate.deferRequest({ ...message, requestedAt: DEFERRED_AT }, DEFERRED_AT);
+
+    const received = await onMessage(message, deps);
+
+    expect(received).toEqual(result());
+    expect(recompute).toHaveBeenCalledTimes(1);
+    const warned = logger.entries.find((entry) => entry.message === 'recompute trailing failed');
+    expect(warned?.level).toBe('warn');
+    await expect(gate.deferredRequest(message.versionId)).resolves.not.toBeNull();
   });
 });

@@ -74,6 +74,18 @@ describe('gate + debounce rule together', () => {
       async markQueued(versionId, at) {
         stamps.set(versionId, at);
       },
+      async deferRequest(request, deferredAt) {
+        await gate.deferRequest(request, deferredAt);
+      },
+      async deferredRequest(versionId) {
+        return gate.deferredRequest(versionId);
+      },
+      async clearDeferred(versionId) {
+        await gate.clearDeferred(versionId);
+      },
+      async listDeferred(limit) {
+        return gate.listDeferred(limit);
+      },
     };
 
     const events = [
@@ -111,5 +123,119 @@ describe('createFailOpenSqlGate', () => {
     await expect(gate.lastQueuedAt(VERSION)).resolves.toBeNull();
     await expect(gate.markQueued(VERSION, T0)).resolves.toBeUndefined();
     expect(warnings).toHaveLength(2);
+  });
+});
+
+/* ------------------------------------------- demandes reportées (SPEC §12) */
+
+const PROJECT = 'proj-pay';
+
+function deferredRow(reason: string, requestedAt = T0_SQL) {
+  return {
+    version_id: VERSION,
+    project_id: PROJECT,
+    reason,
+    requested_at: requestedAt,
+    deferred_at: requestedAt,
+  };
+}
+
+describe('createSqlGate — demandes reportées', () => {
+  it('coalesce avec la ligne déjà présente : la raison la plus forte l’emporte', async () => {
+    const sql = new FakeSql();
+    sql.on(/FROM recalc_deferred/, { rows: [deferredRow('schedule')] });
+    const gate = createSqlGate(sql);
+
+    await gate.deferRequest(
+      { projectId: PROJECT, versionId: VERSION, reason: 'event', requestedAt: '2026-11-12T00:01:00.000Z' },
+      '2026-11-12T00:01:00.000Z',
+    );
+
+    const write = sql.statements[1];
+    expect(write.kind).toBe('execute');
+    expect(write.sql).toMatch(/INSERT INTO recalc_deferred/);
+    expect(write.sql).toMatch(/ON DUPLICATE KEY UPDATE/);
+    expect(write.params[2]).toBe('event');
+    expect(write.params[3]).toBe('2026-11-12 00:01:00.000');
+  });
+
+  it('à raison égale, garde la demande la plus ancienne', async () => {
+    const sql = new FakeSql();
+    sql.on(/FROM recalc_deferred/, { rows: [deferredRow('event')] });
+    const gate = createSqlGate(sql);
+
+    await gate.deferRequest(
+      { projectId: PROJECT, versionId: VERSION, reason: 'event', requestedAt: '2026-11-12T00:01:00.000Z' },
+      '2026-11-12T00:01:00.000Z',
+    );
+
+    expect(sql.statements[1].params[2]).toBe('event');
+    expect(sql.statements[1].params[3]).toBe(T0_SQL);
+  });
+
+  it('relit la demande reportée avec sa raison et son horodatage ISO', async () => {
+    const sql = new FakeSql();
+    sql.on(/FROM recalc_deferred/, { rows: [deferredRow('event')] });
+
+    await expect(createSqlGate(sql).deferredRequest(VERSION)).resolves.toEqual({
+      projectId: PROJECT,
+      versionId: VERSION,
+      reason: 'event',
+      requestedAt: T0,
+    });
+  });
+
+  it('rend null sur une ligne illisible plutôt que de lever', async () => {
+    const sql = new FakeSql();
+    sql.on(/FROM recalc_deferred/, { rows: [deferredRow('raison-inconnue')] });
+
+    await expect(createSqlGate(sql).deferredRequest(VERSION)).resolves.toBeNull();
+  });
+
+  it('borne listDeferred avec un entier inliné, jamais un paramètre lié', async () => {
+    const sql = new FakeSql();
+
+    await createSqlGate(sql).listDeferred(10);
+
+    expect(sql.statements[0].sql).toMatch(/ORDER BY deferred_at ASC LIMIT 10/);
+    expect(sql.statements[0].sql).not.toMatch(/LIMIT \?/);
+  });
+
+  it('plafonne listDeferred à la borne partagée', async () => {
+    const sql = new FakeSql();
+
+    await createSqlGate(sql).listDeferred(10_000);
+
+    expect(sql.statements[0].sql).toMatch(/LIMIT 50/);
+  });
+
+  it('efface la demande reportée d’une version', async () => {
+    const sql = new FakeSql();
+
+    await createSqlGate(sql).clearDeferred(VERSION);
+
+    expect(sql.statements[0].kind).toBe('execute');
+    expect(sql.statements[0].sql).toMatch(/DELETE FROM recalc_deferred WHERE version_id = \?/);
+  });
+});
+
+describe('createFailOpenSqlGate — demandes reportées', () => {
+  it('une table absente ne fait perdre ni le report, ni la lecture, ni le filet horaire', async () => {
+    const sql = new FakeSql();
+    sql.failOn(/recalc_deferred/, new Error("Table 'recalc_deferred' doesn't exist"));
+    const warnings: string[] = [];
+    const gate = createFailOpenSqlGate(sql, {
+      log: (level, message) => {
+        if (level === 'warn') warnings.push(message);
+      },
+    });
+
+    await expect(
+      gate.deferRequest({ projectId: PROJECT, versionId: VERSION, reason: 'event', requestedAt: T0 }, T0),
+    ).resolves.toBeUndefined();
+    await expect(gate.deferredRequest(VERSION)).resolves.toBeNull();
+    await expect(gate.clearDeferred(VERSION)).resolves.toBeUndefined();
+    await expect(gate.listDeferred(50)).resolves.toEqual([]);
+    expect(warnings).toHaveLength(4);
   });
 });

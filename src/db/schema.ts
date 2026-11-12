@@ -34,6 +34,8 @@ export const TABLES = [
   'collection',
   // SPEC §12: at most one queued recompute per minute and per version.
   'recalc_pending',
+  // SPEC §12: a request that falls inside that window is deferred, never dropped.
+  'recalc_deferred',
 ] as const;
 
 export type TableName = (typeof TABLES)[number];
@@ -187,10 +189,33 @@ export const CREATE_SIGNAL_ROW_KEY = `
     INDEX idx_signal_status (status)
   )`;
 
+/**
+ * v004 : demandes de recalcul reportées par la fenêtre de regroupement. Une
+ * ligne par version, écrasée en conservant la raison la plus forte et le
+ * `requestedAt` le plus ancien (`coalesceRequests`).
+ *
+ * Pourquoi une table de plus : `recalc_pending` ne porte que l'horodatage du
+ * dernier recalcul mis en file, donc un événement arrivé dans la fenêtre de
+ * 60 s n'y laissait aucune trace et n'était rejoué que par le balayage horaire
+ * — jusqu'à 1 h de dossier périmé. Constaté en production le 2026-11-12 :
+ * « recompute skipped, inside the debounce window » 12 s après un recalcul,
+ * puis plus rien, et le cas de recette §17.6 (recalcul automatique < 2 min)
+ * intenable.
+ */
+export const CREATE_RECALC_DEFERRED = `
+  CREATE TABLE IF NOT EXISTS recalc_deferred (
+    version_id VARCHAR(64) NOT NULL PRIMARY KEY,
+    project_id VARCHAR(64) NOT NULL,
+    reason VARCHAR(16) NOT NULL,
+    requested_at TIMESTAMP NOT NULL,
+    deferred_at TIMESTAMP NOT NULL
+  )`;
+
 /** Migrations appended after the per-table v001 steps, in order. */
 export const EXTRA_MIGRATIONS: DdlMigration[] = [
   { name: 'v002_drop_signal_legacy', ddl: DROP_SIGNAL_LEGACY },
   { name: 'v003_create_signal_row_key', ddl: CREATE_SIGNAL_ROW_KEY },
+  { name: 'v004_create_recalc_deferred', ddl: CREATE_RECALC_DEFERRED },
 ];
 
 /**
@@ -220,6 +245,7 @@ export const TABLE_DDL: Record<TableName, string> = {
   service_map: CREATE_SERVICE_MAP,
   collection: CREATE_COLLECTION,
   recalc_pending: CREATE_RECALC_PENDING,
+  recalc_deferred: CREATE_RECALC_DEFERRED,
 };
 
 /** Stable migration names: re-enqueuing the same name is a no-op in Forge. */

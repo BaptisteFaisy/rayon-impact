@@ -15,7 +15,7 @@ import { hoursBetween } from '../signals/context';
 import { closeWaiver } from '../engine/waiver';
 import { OUTCOME_WINDOW_HOURS, type JiraVersion } from '../types';
 import type { RecomputeMessage, ReleaseStore } from '../ports';
-import { enqueueDue, type EnqueueDeps } from './events';
+import { enqueueDue, MAX_DEFERRED_FLUSH, type EnqueueDeps } from './events';
 
 /** A release the scheduler may ask a recompute for. */
 export interface ScheduledVersion {
@@ -178,6 +178,11 @@ export async function onScheduled(
   const requests: RecomputeMessage[] = [];
   if (mode !== 'outcome') {
     requests.push(...(await hourlyRequests(deps, now)));
+    // Filet de sécurité (SPEC §12) : ce que la fenêtre de regroupement a retenu
+    // et que la passe finale du consumer n'a pas pu rejouer (budget épuisé,
+    // invocation échouée) repart ici. `enqueueDue` applique à nouveau la fenêtre
+    // et efface la demande dès qu'elle est publiée : rien ne tourne en boucle.
+    requests.push(...(await deps.gate.listDeferred(MAX_DEFERRED_FLUSH)));
   }
   if (mode !== 'hourly') {
     requests.push(...(await outcomeRequests(deps, now)));
