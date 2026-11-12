@@ -8,7 +8,7 @@ import {
   createFakeConfluenceClient,
   linkedConfluencePageIds,
 } from '../../src/collect/confluence';
-import { CollectRequestError, type ForgeRequest, type ForgeResponseLike } from '../../src/collect/paging';
+import { pathLabel,  CollectRequestError, type ForgeRequest, type ForgeResponseLike } from '../../src/collect/paging';
 import { issue } from '../fixtures/builders';
 import type { RemoteLink } from '../../src/types';
 
@@ -176,8 +176,11 @@ function stubConfluence(
 ): { request: ForgeRequest; paths: string[] } {
   const paths: string[] = [];
   const request: ForgeRequest = async (path): Promise<ForgeResponseLike> => {
-    paths.push(path);
-    const answer = answers[path];
+    // Forge exige des chemins construits avec `route` : le stub répond sur la
+    // forme lisible (`pathLabel`), comme le ferait le vrai transport.
+    const label = pathLabel(path);
+    paths.push(label);
+    const answer = answers[label];
     if (typeof answer === 'number') {
       return { ok: false, status: answer, json: async () => ({}) };
     }

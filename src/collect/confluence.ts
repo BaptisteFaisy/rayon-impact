@@ -12,9 +12,12 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
+import { route } from '@forge/api';
 import type { ConfluencePage, JiraIssue, SourceStatus } from '../types';
 import {
   CollectRequestError,
+  pathLabel,
+  type ForgeRequestPath,
   optionalText,
   readJson,
   sourceStatus,
@@ -151,8 +154,14 @@ interface ConfluenceSpaceResponse {
 }
 
 /** One GET returning JSON, with the Accept header Confluence expects. */
-async function getJson<T>(requestConfluence: ForgeRequest, path: string): Promise<T> {
-  return readJson<T>(await requestConfluence(path, { headers: { Accept: 'application/json' } }), path);
+async function getJson<T>(
+  requestConfluence: ForgeRequest,
+  path: ForgeRequestPath,
+): Promise<T> {
+  return readJson<T>(
+    await requestConfluence(path, { headers: { Accept: 'application/json' } }),
+    pathLabel(path),
+  );
 }
 
 /**
@@ -169,7 +178,9 @@ function createSpaceKeyResolver(
     if (cache.has(spaceId)) return cache.get(spaceId);
     let key: string | undefined;
     try {
-      key = optionalText((await getJson<ConfluenceSpaceResponse>(requestConfluence, `/wiki/api/v2/spaces/${spaceId}`)).key);
+      key = optionalText(
+        (await getJson<ConfluenceSpaceResponse>(requestConfluence, route`/wiki/api/v2/spaces/${spaceId}`)).key,
+      );
     } catch {
       key = undefined;
     }
@@ -184,7 +195,7 @@ async function fetchPage(
   id: string,
   spaceKeyFor: (spaceId: string | undefined) => Promise<string | undefined>,
 ): Promise<ConfluencePageDto | null> {
-  const path = `/wiki/api/v2/pages/${id}`;
+  const path = route`/wiki/api/v2/pages/${id}`;
   let json: ConfluencePageResponse;
   try {
     json = await getJson<ConfluencePageResponse>(requestConfluence, path);

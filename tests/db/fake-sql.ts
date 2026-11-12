@@ -23,6 +23,7 @@ export interface Stub {
 export class FakeSql implements SqlClient {
   readonly statements: RecordedStatement[] = [];
   private stubs: Stub[] = [];
+  private failures: { match: RegExp; error: Error }[] = [];
 
   /** Programs the answer of every statement whose SQL matches `match`. */
   on(match: RegExp, result: { rows?: unknown[]; affectedRows?: number } = {}): this {
@@ -33,16 +34,31 @@ export class FakeSql implements SqlClient {
   reset(): void {
     this.statements.length = 0;
     this.stubs = [];
+    this.failures = [];
   }
 
   async query<Row>(sql: string, params: readonly SqlParam[] = []): Promise<Row[]> {
     const statement = this.record('query', sql, params);
+    const failure = this.failureFor(statement.sql);
+    if (failure) throw failure;
     return (this.stubFor(statement.sql)?.rows ?? []) as Row[];
   }
 
   async execute(sql: string, params: readonly SqlParam[] = []): Promise<number> {
     const statement = this.record('execute', sql, params);
+    const failure = this.failureFor(statement.sql);
+    if (failure) throw failure;
     return this.stubFor(statement.sql)?.affectedRows ?? 1;
+  }
+
+  /** Makes every statement matching `match` throw `error` (missing table, quota…). */
+  failOn(match: RegExp, error: Error): this {
+    this.failures.push({ match, error });
+    return this;
+  }
+
+  private failureFor(sql: string): Error | undefined {
+    return this.failures.find((failure) => failure.match.test(sql))?.error;
   }
 
   /** Statements whose SQL matches `pattern` (no `/g` flag, please). */

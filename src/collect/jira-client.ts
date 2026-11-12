@@ -28,7 +28,7 @@ import type {
   Policy,
   RemoteLink,
 } from '../types';
-import { MAX_PAGE_FETCHES, readJson } from './paging';
+import { MAX_PAGE_FETCHES, readJson, pathLabel } from './paging';
 import type { ForgeRequest, ForgeResponseLike } from './paging';
 import { resolveServiceForIssue } from './services';
 
@@ -221,10 +221,13 @@ const SAFE_JIRA_PATH = /^\/rest\/api\/3\/[A-Za-z0-9\-._~/%?=&]*$/;
 export function createJiraForgeRequest(options: JiraClientOptions = {}): ForgeRequest {
   const send = (options.as === 'user' ? api.asUser(options.accountId) : api.asApp()).requestJira;
   return async (path, init): Promise<ForgeResponseLike> => {
-    if (!SAFE_JIRA_PATH.test(path) || path.includes('..') || path.includes('//')) {
-      throw new JiraApiError(`refusing unsafe Jira path: ${path}`, 400);
+    // `path` peut être une chaîne ou une `route` de Forge : le contrôle de
+    // sûreté porte sur la forme lisible, dans les deux cas.
+    const label = pathLabel(path);
+    if (!SAFE_JIRA_PATH.test(label) || label.includes('..') || label.includes('//')) {
+      throw new JiraApiError(`refusing unsafe Jira path: ${label}`, 400);
     }
-    return send(assumeTrustedRoute(path), init as RequestInit);
+    return send(assumeTrustedRoute(label), init as RequestInit);
   };
 }
 

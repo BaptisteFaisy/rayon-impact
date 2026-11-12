@@ -34,7 +34,8 @@ import type { ActionDeps, DossierIndex } from './actions/types';
 import { recomputeOutcome, recomputeRelease, resolvePolicy } from './engine/pipeline';
 import { buildImpactGraph } from './engine/graph';
 import { diffSnapshots } from './engine/diff';
-import { createMemoryGate, onJiraEvent } from './triggers/events';
+import { onJiraEvent } from './triggers/events';
+import { createFailOpenSqlGate } from './db/gate';
 import type { JiraEventLike } from './triggers/events';
 import { onScheduled as runScheduled } from './triggers/scheduled';
 import type { ScheduledPayload, ScheduledVersionSource } from './triggers/scheduled';
@@ -355,7 +356,11 @@ async function pipelineDeps(projectId: string, cloudId: string | null): Promise<
 
 /** `trigger` module: Jira version, issue and issue-link events. */
 export async function onEvent(event: JiraEventLike): Promise<RecomputeMessage[]> {
-  return onJiraEvent(event, { queue: jobQueue, gate: createMemoryGate(), clock, logger });
+  // Sans ce rappel, la première invocation interroge `recalc_pending` avant sa
+  // création : le trigger lève, l'événement est perdu, aucun recalcul n'est
+  // jamais mis en file (constaté en réel sur le site de démo).
+  await ensureSchema();
+  return onJiraEvent(event, { queue: jobQueue, gate: createFailOpenSqlGate(sql(), logger), clock, logger });
 }
 
 /** `scheduledTrigger` modules: hourly refresh and the 72 h outcome check. */
@@ -364,7 +369,10 @@ export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeM
   const store: ReleaseStore = createStore();
   const versions: ScheduledVersionSource = {
     async listOpenVersions() {
-      const rows = await listOpenVersions(sql(), payload.context?.cloudId ?? '');
+      // Le déclencheur planifié n'a pas de contexte projet : il balaie toutes
+      // les versions ouvertes du site (passer le cloudId comme projectId
+      // faisait remonter zéro version).
+      const rows = await listOpenVersions(sql());
       return rows.map((row) => ({
         versionId: row.version_id,
         versionName: row.version_name,
@@ -374,11 +382,7 @@ export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeM
       }));
     },
     async listReleasedVersions(beforeIso: string) {
-      const rows = await listReleasedVersions(
-        sql(),
-        payload.context?.cloudId ?? '',
-        beforeIso,
-      );
+      const rows = await listReleasedVersions(sql(), beforeIso);
       return rows.map((row) => ({
         versionId: row.version_id,
         versionName: row.version_name,
@@ -390,7 +394,7 @@ export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeM
   };
   return runScheduled(payload, {
     queue: jobQueue,
-    gate: createMemoryGate(),
+    gate: createFailOpenSqlGate(sql(), logger),
     clock,
     logger,
     store,
