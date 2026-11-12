@@ -27,7 +27,7 @@ export function SettingsPage() {
 
   const policy = draft ?? screen.data ?? emptyPolicy(project.id ?? '');
 
-  if (screen.loading) return <p>…</p>;
+  if (screen.loading) return <p role="status">…</p>;
 
   async function save() {
     setError(null);
@@ -43,11 +43,33 @@ export function SettingsPage() {
 
   return (
     <div style={{ padding: 12 }}>
-      <h3>{locale === 'fr' ? 'Réglages du rayon d’impact' : 'Release impact settings'}</h3>
       <StatusMessages error={error} saved={saved} locale={locale} />
-      <SeverityTable policy={policy} locale={locale} onChange={setDraft} />
-      <PolicyFields policy={policy} locale={locale} onChange={setDraft} />
-      <Button appearance="primary" onClick={save}>
+      <SettingsView policy={policy} locale={locale} onChange={setDraft} onSave={save} />
+    </div>
+  );
+}
+
+/**
+ * The loaded settings body, taking the policy as props: `renderToStaticMarkup`
+ * never runs the `useScreen` effect, so tests render this view directly.
+ */
+export function SettingsView({
+  policy,
+  locale,
+  onChange,
+  onSave,
+}: {
+  policy: Policy;
+  locale: Locale;
+  onChange: (next: Policy) => void;
+  onSave: () => void;
+}) {
+  return (
+    <div>
+      <h3>{locale === 'fr' ? 'Réglages du rayon d’impact' : 'Release impact settings'}</h3>
+      <SeverityTable policy={policy} locale={locale} onChange={onChange} />
+      <PolicyFields policy={policy} locale={locale} onChange={onChange} />
+      <Button appearance="primary" onClick={onSave}>
         {locale === 'fr' ? 'Enregistrer' : 'Save'}
       </Button>
     </div>

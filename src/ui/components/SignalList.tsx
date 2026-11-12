@@ -27,9 +27,7 @@ export function SignalList(props: SignalListProps) {
   const { signals, locale } = props;
   if (signals.length === 0) {
     return (
-      <p style={{ color: '#6B778C' }}>
-        {t({ key: 'verdict.go' }, locale)} — aucun signal actif.
-      </p>
+      <p style={{ color: '#6B778C' }}>{t({ key: 'signals.none.active' }, locale)}</p>
     );
   }
 

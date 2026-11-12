@@ -1,5 +1,7 @@
 import type { GraphNode, GraphNodeKind, ImpactGraph, Locale } from '../../types';
 import { GRAPH_NODE_LIMIT } from '../../types';
+import { graphToListView } from '../../engine/graph';
+import { t } from '../../i18n/index';
 
 /**
  * Impact graph view, with its list equivalent (SPEC §11: the graph always has a
@@ -93,47 +95,34 @@ export function GraphView({ graph, locale }: GraphViewProps) {
   );
 }
 
-/** The accessible counterpart: every node, grouped by kind. */
+/** The accessible counterpart: the engine's list view, with translated groups. */
 function ListEquivalent({ graph, locale }: GraphViewProps) {
-  const kinds: GraphNodeKind[] = [
-    'version',
-    'issue',
-    'service',
-    'team',
-    'incident',
-    'page',
-    'pull-request',
-  ];
   return (
     <div style={{ marginTop: 12 }}>
-      {kinds.map((kind) => {
-        const nodes = graph.nodes.filter((node) => node.kind === kind);
-        if (nodes.length === 0) return null;
-        return (
-          <div key={kind} style={{ marginBottom: 8 }}>
-            <strong>{kind}</strong> ({nodes.length})
-            <ul style={{ paddingLeft: 20, margin: '4px 0' }}>
-              {nodes.map((node) => (
-                <li key={node.id}>
-                  {node.url ? (
-                    <a href={node.url} target="_blank" rel="noreferrer">
-                      {node.label}
-                    </a>
-                  ) : (
-                    node.label
-                  )}
-                  {node.restricted ? (
-                    <span style={{ color: '#6B778C' }}>
-                      {' '}
-                      — {locale === 'fr' ? 'masqué' : 'hidden'}
-                    </span>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
+      {graphToListView(graph).map((section) => (
+        <div key={section.group.key} style={{ marginBottom: 8 }}>
+          <strong>{t(section.group, locale)}</strong> ({section.items.length})
+          <ul style={{ paddingLeft: 20, margin: '4px 0' }}>
+            {section.items.map((item, index) => (
+              <li key={`${item.label}-${index}`}>
+                {item.url ? (
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.label}
+                  </a>
+                ) : (
+                  item.label
+                )}
+                {item.restricted ? (
+                  <span style={{ color: '#6B778C' }}>
+                    {' '}
+                    — {locale === 'fr' ? 'masqué' : 'hidden'}
+                  </span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }

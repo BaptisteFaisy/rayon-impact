@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Tabs, { Tab, TabList, TabPanel } from '@atlaskit/tabs';
 import { invoke } from '@forge/bridge';
+import { t } from '../i18n/index';
 import { useLocale, useProject, useScreen } from './hooks';
 import { VerdictBanner } from './components/VerdictBanner';
 import { CoverageMeter } from './components/CoverageMeter';
@@ -51,7 +52,7 @@ export function ProjectPage() {
     if (!versionId && rows.length > 0) setVersionId(rows[0].versionId);
   }, [rows, versionId]);
 
-  if (versions.loading) return <p>…</p>;
+  if (versions.loading) return <p role="status">…</p>;
   if (rows.length === 0) return <EmptyProject locale={locale} />;
 
   return (
@@ -74,7 +75,7 @@ function EmptyProject({ locale }: { locale: Locale }) {
   );
 }
 
-function VersionPicker({
+export function VersionPicker({
   rows,
   selected,
   onSelect,
@@ -95,7 +96,7 @@ function VersionPicker({
       >
         {rows.map((row) => (
           <option key={row.versionId} value={row.versionId}>
-            {row.versionName} — {row.verdict}
+            {row.versionName} — {t({ key: `verdict.${row.verdict}` }, locale)}
           </option>
         ))}
       </select>
@@ -120,7 +121,7 @@ function Dossier({
   const [waiving, setWaiving] = useState<Signal | null>(null);
   const [tab, setTab] = useState(0);
 
-  if (dossier.loading) return <p>…</p>;
+  if (dossier.loading) return <p role="status">…</p>;
   if (!dossier.data) return <p style={{ padding: 12 }}>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</p>;
 
   const { snapshot } = dossier.data;
@@ -152,7 +153,7 @@ function Dossier({
 
 
 /** Verdict, coverage, what changed since the last dossier, and the summary. */
-function DossierHeader({
+export function DossierHeader({
   snapshot,
   diff,
   locale,
@@ -178,7 +179,7 @@ function DossierHeader({
   );
 }
 
-function DossierTabs(props: {
+export function DossierTabs(props: {
   tab: number;
   onTab: (n: number) => void;
   dossier: ReleaseDossier;
@@ -217,7 +218,7 @@ function DossierTabs(props: {
           <TeamsTab teams={teams} locale={locale} />
         </TabPanel>
         <TabPanel>
-          <WaiversTab waivers={waivers} />
+          <WaiversTab waivers={waivers} locale={locale} />
         </TabPanel>
         <TabPanel>
           <HistoryTab decisions={decisions} outcome={outcome} locale={locale} />

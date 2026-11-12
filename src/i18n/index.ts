@@ -184,6 +184,26 @@ export const DICTIONARY_EN: Record<string, string> = {
   'waiver.hours.invalid': 'Invalid waiver duration ({hours} h): expected between 1 and 720 hours.',
   'waiver.notFound': 'No waiver with id “{waiverId}” is recorded.',
   'waiver.alreadyClosed': 'Waiver “{waiverId}” is already closed (since {closedAt}).',
+
+  // ui
+  'signals.none.active': 'No active signal.',
+  'waivers.expires': 'expires {at}',
+  'waivers.closed': 'closed {at} ({reason})',
+  'history.entry': '{at} — {decision} ({verdict}) by {by}',
+  'history.outcome': '72 h outcome: {count} incident(s)',
+  'history.rollback': 'rollback',
+  'decision.ship': 'Ship',
+  'decision.hold': 'Hold',
+  'decision.delay': 'Delay',
+  'settings.severityFor': 'Severity for {code}',
+  'settings.enabledFor': 'Enable {code}',
+  'graph.group.version': 'Version',
+  'graph.group.issue': 'Tickets',
+  'graph.group.service': 'Services',
+  'graph.group.team': 'Teams',
+  'graph.group.incident': 'Incidents',
+  'graph.group.page': 'Documentation pages',
+  'graph.group.pull-request': 'Pull requests',
 };
 
 export const DICTIONARY_FR: Record<string, string> = {
@@ -332,6 +352,26 @@ export const DICTIONARY_FR: Record<string, string> = {
   'diff.added': 'Nouveaux signaux',
   'diff.cleared': 'Signaux levés',
   'diff.severity': 'Gravité modifiée',
+  // ui
+  'signals.none.active': 'Aucun signal actif.',
+  'waivers.expires': 'expire {at}',
+  'waivers.closed': 'close {at} ({reason})',
+  'history.entry': '{at} — {decision} ({verdict}) par {by}',
+  'history.outcome': 'Bilan 72 h : {count} incident(s)',
+  'history.rollback': 'rollback',
+  'decision.ship': 'Livrer',
+  'decision.hold': 'Retenir',
+  'decision.delay': 'Reporter',
+  'settings.severityFor': 'Gravité pour {code}',
+  'settings.enabledFor': 'Activer {code}',
+  'graph.group.version': 'Version',
+  'graph.group.issue': 'Tickets',
+  'graph.group.service': 'Services',
+  'graph.group.team': 'Équipes',
+  'graph.group.incident': 'Incidents',
+  'graph.group.page': 'Pages de documentation',
+  'graph.group.pull-request': 'Pull requests',
+
   // Décision humaine (RI-08) — clés demandées par DecisionDialog
   'decision.dialog.title': 'Enregistrer la décision',
   'decision.dialog.currentVerdict': 'Avis actuel : {verdict}',
@@ -344,7 +384,6 @@ export const DICTIONARY_FR: Record<string, string> = {
   'decision.option.ship': 'On livre',
   'decision.option.hold': 'On retient',
   'decision.option.delay': 'On reporte',
-
 };
 
 const DICTIONARIES: Record<Locale, Record<string, string>> = {

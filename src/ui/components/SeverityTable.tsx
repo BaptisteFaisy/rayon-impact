@@ -69,7 +69,11 @@ function SeverityRow({ code, policy, locale, onChange }: SeverityTableProps & { 
         {code} — {t(definition.title, locale)}
       </td>
       <td style={cell}>
-        <select value={severity} onChange={(event) => setSeverity(event.target.value as Severity)}>
+        <select
+          aria-label={t({ key: 'settings.severityFor', params: { code } }, locale)}
+          value={severity}
+          onChange={(event) => setSeverity(event.target.value as Severity)}
+        >
           {SEVERITIES.map((value) => (
             <option key={value} value={value}>
               {t({ key: `severity.${value}` }, locale)}
@@ -78,7 +82,12 @@ function SeverityRow({ code, policy, locale, onChange }: SeverityTableProps & { 
         </select>
       </td>
       <td style={cell}>
-        <input type="checkbox" checked={enabled} onChange={(event) => setEnabled(event.target.checked)} />
+        <input
+          type="checkbox"
+          aria-label={t({ key: 'settings.enabledFor', params: { code } }, locale)}
+          checked={enabled}
+          onChange={(event) => setEnabled(event.target.checked)}
+        />
       </td>
     </tr>
   );

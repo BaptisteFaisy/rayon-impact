@@ -6,6 +6,9 @@ import type { Locale, ReleaseDossier } from '../types';
  * The issue panel: one line telling the developer whether this ticket holds a
  * release back, and why (SPEC §6.2, §11). No other screen to open.
  *
+ * `IssueContextView` takes the resolver payload as props so the loaded state is
+ * renderable in tests (`renderToStaticMarkup` never runs `useScreen`'s effect).
+ *
  * Rule: files < 500 lines, functions < 50 lines.
  */
 
@@ -15,7 +18,7 @@ interface VersionDossier {
   dossier: ReleaseDossier | null;
 }
 
-interface IssueContextPayload {
+export interface IssueContextPayload {
   issueId: string;
   versions: VersionDossier[];
   observationMode: boolean;
@@ -30,24 +33,53 @@ export function IssueContext() {
     projectId: project.id ?? '',
   });
 
-  if (screen.loading) return <span>…</span>;
-  if (!screen.data || screen.data.observationMode) {
-    return <span>{locale === 'fr' ? 'Aucun dossier pour ce ticket.' : 'No dossier for this ticket.'}</span>;
+  if (screen.loading) {
+    return <span role="status">…</span>;
   }
+  if (!screen.data) {
+    return <span>{noDossierText(locale)}</span>;
+  }
+  return (
+    <IssueContextView data={screen.data} issueId={issue.id ?? ''} locale={locale} />
+  );
+}
 
-  const lines = screen.data.versions.map((version) => describe(version, issue.id ?? '', locale));
+/** The loaded panel: one line per tracked version of this ticket. */
+export function IssueContextView({
+  data,
+  issueId,
+  locale,
+}: {
+  data: IssueContextPayload;
+  issueId: string;
+  locale: Locale;
+}) {
+  if (data.observationMode) {
+    return <span>{noDossierText(locale)}</span>;
+  }
+  const lines = data.versions.map((version) => describe(version, issueId, locale));
   if (lines.length === 0) {
     return (
-      <span>{locale === 'fr' ? 'Ce ticket ne concerne aucune version suivie.' : 'This ticket is not part of any tracked release.'}</span>
+      <span>
+        {locale === 'fr'
+          ? 'Ce ticket ne concerne aucune version suivie.'
+          : 'This ticket is not part of any tracked release.'}
+      </span>
     );
   }
   return (
-    <div>
+    <ul style={{ margin: 0, paddingLeft: 20 }}>
       {lines.map((line, index) => (
-        <div key={index}>{line}</div>
+        <li key={index}>{line}</li>
       ))}
-    </div>
+    </ul>
   );
+}
+
+function noDossierText(locale: Locale): string {
+  return locale === 'fr'
+    ? 'Aucun dossier pour ce ticket.'
+    : 'No dossier for this ticket.';
 }
 
 /** The one line the developer reads: held back, or not. */
