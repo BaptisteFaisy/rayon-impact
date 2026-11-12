@@ -13,6 +13,8 @@
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
+import { route } from '@forge/api';
+import type { Logger } from '../ports';
 import type { Incident, SourceStatus } from '../types';
 import {
   asArray,
@@ -20,8 +22,10 @@ import {
   asRecord,
   asText,
   optionalText,
+  CollectRequestError,
   collectPaged,
   readJson,
+  pathLabel,
   sourceStatus,
   uniqueSorted,
   type ForgeRequest,
@@ -118,7 +122,10 @@ function relevantIncidents(
  * (SPEC §15).
  */
 export class JsmIncidentCollector {
-  constructor(private readonly client: JsmClient) {}
+  constructor(
+    private readonly client: JsmClient,
+    private readonly logger?: Logger,
+  ) {}
 
   async collect(input: JsmCollectInput): Promise<JsmCollection> {
     const projectKeys = uniqueSorted(input.projectKeys);
@@ -134,7 +141,15 @@ export class JsmIncidentCollector {
         serviceIds: uniqueSorted(input.serviceIds),
         limit: MAX_INCIDENTS,
       });
-    } catch {
+    } catch (error) {
+      // La couverture dit « indisponible », mais sans ce journal la cause reste
+      // invisible : observé en réel sur le site de démo alors que la même JQL
+      // répond 200 avec un token utilisateur.
+      this.logger?.log('warn', 'source JSM indisponible', {
+        message: error instanceof Error ? error.message : String(error),
+        status: error instanceof CollectRequestError ? error.status : null,
+        projects: projectKeys.join(','),
+      });
       return { incidents: [], status: sourceStatus('jsm', 'unavailable') };
     }
 
@@ -268,10 +283,10 @@ function dtoFromIssue(
 export async function discoverAffectedServicesField(
   requestJira: ForgeRequest,
 ): Promise<string | undefined> {
-  const path = '/rest/api/3/field';
+  const path = route`/rest/api/3/field`;
   try {
     const response = await requestJira(path, { headers: { Accept: 'application/json' } });
-    const fields = await readJson<unknown>(response, path);
+    const fields = await readJson<unknown>(response, pathLabel(path));
     const match = asArray(fields)
       .map((field) => asRecord(field))
       .find((field) => /affected services/i.test(asText(field.name)));
@@ -297,7 +312,7 @@ export function createJsmClient(
 
   return {
     async listIncidents(query: JsmQuery): Promise<JsmIncidentDto[]> {
-      const path = '/rest/api/3/search/jql';
+      const path = route`/rest/api/3/search/jql`;
       const jql = jsmIncidentJql(query.projectKeys, issueType);
       const touched = new Set(query.serviceIds);
       const paged = await collectPaged<JiraSearchIssue>({
@@ -310,7 +325,7 @@ export function createJsmClient(
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify(body),
           });
-          const json = await readJson<JiraSearchResponse>(response, path);
+          const json = await readJson<JiraSearchResponse>(response, pathLabel(path));
           return { items: json.issues ?? [], nextToken: json.nextPageToken };
         },
       });

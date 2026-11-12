@@ -69,7 +69,7 @@ export class ComposedReleaseCollector implements ReleaseCollector {
     const base = await jira.collect(projectId, versionId, viewerAccountId);
 
     const services = impactedServiceIds(base.issues);
-    const jsm = await new JsmIncidentCollector(this.deps.jsmClient).collect({
+    const jsm = await new JsmIncidentCollector(this.deps.jsmClient, this.deps.logger).collect({
       projectKeys: policy.jsmProjectKeys,
       serviceIds: services,
     });
@@ -105,7 +105,7 @@ export class ComposedReleaseCollector implements ReleaseCollector {
     untilIso: string,
   ): Promise<Incident[]> {
     if (serviceIds.length === 0) return [];
-    const collected = await new JsmIncidentCollector(this.deps.jsmClient).collect({
+    const collected = await new JsmIncidentCollector(this.deps.jsmClient, this.deps.logger).collect({
       projectKeys: this.deps.policy.jsmProjectKeys,
       serviceIds,
     });
@@ -174,10 +174,15 @@ export class ComposedReleaseCollector implements ReleaseCollector {
   }
 }
 
-/** One status per source: the first one wins, the others are ignored. */
-function mergeSources(base: SourceStatus[], extra: SourceStatus[]): SourceStatus[] {
+/**
+ * One status per source. The sources actually collected here (`extra`) win over
+ * the placeholders the Jira collector writes when its optional sources are not
+ * wired: with the previous precedence, `jsm` stayed `unavailable` forever even
+ * though the JSM collector had answered (observed live on the demo site).
+ */
+export function mergeSources(base: SourceStatus[], extra: SourceStatus[]): SourceStatus[] {
   const merged = new Map<string, SourceStatus>();
-  for (const status of [...base, ...extra]) {
+  for (const status of [...extra, ...base]) {
     if (!merged.has(status.source)) merged.set(status.source, status);
   }
   return [...merged.values()];

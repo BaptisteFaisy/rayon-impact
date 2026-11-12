@@ -32,6 +32,8 @@ export const TABLES = [
   'service_map',
   // SPEC §12: the collection is cached with the dossier, with its date.
   'collection',
+  // SPEC §12: at most one queued recompute per minute and per version.
+  'recalc_pending',
 ] as const;
 
 export type TableName = (typeof TABLES)[number];
@@ -191,6 +193,22 @@ export const EXTRA_MIGRATIONS: DdlMigration[] = [
   { name: 'v003_create_signal_row_key', ddl: CREATE_SIGNAL_ROW_KEY },
 ];
 
+/**
+ * Debounce state of the recompute queue (SPEC §12, step 1: "au plus une fois
+ * par minute et par version"). One row per version, overwritten on each push.
+ *
+ * Why a table and not memory: `createMemoryGate()` lived for the duration of one
+ * invocation, so every Jira event queued a recompute. Observed on the demo site:
+ * the same version recomputed 5 times in 20 minutes, each recompute calling the
+ * hosted model up to 3 times — the LLM being the only billable line with no free
+ * allowance.
+ */
+export const CREATE_RECALC_PENDING = `
+  CREATE TABLE IF NOT EXISTS recalc_pending (
+    version_id VARCHAR(64) NOT NULL PRIMARY KEY,
+    last_queued_at TIMESTAMP NOT NULL
+  )`;
+
 /** DDL per table, keyed by table name — the single source for `defineAllTables`. */
 export const TABLE_DDL: Record<TableName, string> = {
   release_snapshot: CREATE_RELEASE_SNAPSHOT,
@@ -201,6 +219,7 @@ export const TABLE_DDL: Record<TableName, string> = {
   policy: CREATE_POLICY,
   service_map: CREATE_SERVICE_MAP,
   collection: CREATE_COLLECTION,
+  recalc_pending: CREATE_RECALC_PENDING,
 };
 
 /** Stable migration names: re-enqueuing the same name is a no-op in Forge. */

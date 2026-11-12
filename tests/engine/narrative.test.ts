@@ -195,3 +195,43 @@ async function run(narrative: NarrativeWriter, release: CollectedRelease) {
     reason: 'event',
   });
 }
+
+describe('hallucinated signal codes', () => {
+  it('rejects an invented code as a hard violation', () => {
+    const release = paiementsRelease();
+    const check = verifyNarrative('CVRG-01 — coverage is low.', {
+      ...narrativeInput(release),
+      signals: signalsOf(release),
+    });
+    expect(check.ok).toBe(false);
+    expect(check.hardViolations.join(' ')).toContain('CVRG-01');
+  });
+
+  it('accepts a COVERAGE line without a signal code as a soft matter only', () => {
+    const release = paiementsRelease();
+    const text = [
+      'COMP-01 — PAY-131 is still in progress.',
+      'COVERAGE — no commit is visible for 14 of 14 tickets.',
+      'QUAL-01 — the last build on PAY-129 failed.',
+      'EXP-01 — INC-52 is open on checkout-api.',
+      'DEP-01 — PAY-130 is blocked by PAY-118.',
+    ].join('\n');
+    const check = verifyNarrative(text, {
+      ...narrativeInput(release),
+      signals: signalsOf(release),
+    });
+    expect(check.hardViolations).toEqual([]);
+    expect(check.softViolations).toEqual([]);
+    expect(check.ok).toBe(true);
+  });
+
+  it('asks the model never to invent a code', () => {
+    const release = paiementsRelease();
+    const payload = buildNarrativePayload({
+      ...narrativeInput(release),
+      signals: signalsOf(release),
+    });
+    expect(payload.system).toContain('never invent a code');
+    expect(payload.system).toContain('COVERAGE');
+  });
+});

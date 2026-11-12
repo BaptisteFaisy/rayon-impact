@@ -21,19 +21,23 @@ export interface VersionRow {
 }
 
 /** Bounded list of the versions of a project, newest dossier first. */
+/**
+ * `projectId` is optional: the scheduled triggers have no project context and
+ * sweep every tracked version of the site.
+ */
 export async function listVersions(
   sql: SqlClient,
-  projectId: string,
+  projectId?: string,
   limit = 20,
 ): Promise<VersionRow[]> {
   const rows = await sql.query<VersionRow>(
     `SELECT version_id, version_name, project_id, version_released, computed_at
        FROM release_snapshot
-      WHERE project_id = ?
+      ${projectId ? 'WHERE project_id = ?' : ''}
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
       LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
-    [projectId],
+    projectId ? [projectId] : [],
   );
   return rows;
 }
@@ -41,17 +45,17 @@ export async function listVersions(
 /** Versions that are not published yet: the hourly refresh works on those. */
 export async function listOpenVersions(
   sql: SqlClient,
-  projectId: string,
+  projectId?: string,
   limit = 20,
 ): Promise<VersionRow[]> {
   const rows = await sql.query<VersionRow>(
     `SELECT version_id, version_name, project_id, version_released, computed_at
        FROM release_snapshot
-      WHERE project_id = ? AND version_released = 0
+      WHERE version_released = 0${projectId ? ' AND project_id = ?' : ''}
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
       LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
-    [projectId],
+    projectId ? [projectId] : [],
   );
   return rows;
 }
@@ -59,18 +63,18 @@ export async function listOpenVersions(
 /** Versions published since a date: the 72 h outcome check works on those. */
 export async function listReleasedVersions(
   sql: SqlClient,
-  projectId: string,
   sinceIso: string,
+  projectId?: string,
   limit = 20,
 ): Promise<VersionRow[]> {
   const rows = await sql.query<VersionRow>(
     `SELECT version_id, version_name, project_id, version_released, computed_at
        FROM release_snapshot
-      WHERE project_id = ? AND version_released = 1 AND computed_at >= ?
+      WHERE version_released = 1 AND computed_at >= ?${projectId ? ' AND project_id = ?' : ''}
       GROUP BY version_id, version_name, project_id, version_released, computed_at
       ORDER BY computed_at DESC
       LIMIT ${sqlLimit(limit, MAX_VERSION_ROWS)}`,
-    [projectId, sinceIso],
+    projectId ? [sinceIso, projectId] : [sinceIso],
   );
   return rows;
 }

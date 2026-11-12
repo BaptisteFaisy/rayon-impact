@@ -33,10 +33,27 @@ export interface ForgeRequestInit {
  * variant of that adapter belongs there too: `createConfluenceClient` below
  * takes the port, so it only needs `api.asApp().requestConfluence`.
  */
+/**
+ * A path built with the `route` tag of `@forge/api`: an opaque `{ value }`.
+ * Forge **refuses** a plain string at runtime ("You must create your route
+ * using the 'route' export from '@forge/api'") — observed live on the JSM
+ * collector, which silently fell back to `unavailable`.
+ */
+export interface RouteLike {
+  readonly value: string;
+}
+
+export type ForgeRequestPath = string | RouteLike;
+
 export type ForgeRequest = (
-  path: string,
+  path: ForgeRequestPath,
   init?: ForgeRequestInit,
 ) => Promise<ForgeResponseLike>;
+
+/** Readable form of a path, for error messages and logs. */
+export function pathLabel(path: ForgeRequestPath): string {
+  return typeof path === 'string' ? path : path.value;
+}
 
 /** A REST call the collector could not complete (non-2xx answer). */
 export class CollectRequestError extends Error {

@@ -47,8 +47,11 @@ const SYSTEM_PROMPT = [
   'then a single sentence about that signal.',
   'Copy the identifiers (issue keys, service names, incident keys, page titles)',
   'exactly as they appear in the input list. Never invent one.',
-  'If the input list is empty, say in 5 lines that no signal is active and state',
-  'the coverage: absence of data is never good news.',
+  'Use ONLY the signal codes that appear in the input list: never invent a code.',
+  'To talk about the data coverage, write one line starting with the literal',
+  'word COVERAGE followed by " — " (no code, no other prefix).',
+  'If the input list is empty, write 5 lines: one COVERAGE line stating the',
+  'coverage, then plain sentences — absence of data is never good news.',
   'Answer in the requested language.',
   '',
   'Shape example (one input line, then its output line):',
@@ -148,7 +151,11 @@ export function verifyNarrative(
   const codes = new Set(input.signals.map((signal) => signal.code));
   for (const line of lines) {
     const cited = [...codes].some((code) => line.includes(code));
-    if (!cited) {
+    // Une ligne de couverture est licite sans code : le prompt l'impose sous
+    // cette forme pour éviter que le modèle n'invente un code (vu en réel :
+    // « CVRG-01 », rejeté à juste titre mais au prix de trois appels).
+    const coverageLine = /^coverage\b/i.test(line.trim());
+    if (!cited && !coverageLine) {
       softViolations.push(`ligne sans code de signal : ${line.slice(0, 60)}`);
     }
   }

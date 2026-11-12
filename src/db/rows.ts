@@ -184,6 +184,17 @@ export interface CollectionRow {
   payload_json: string | null;
 }
 
+/** One row per version: when a recompute was last queued (SPEC §12). */
+export interface RecalcPendingRow {
+  version_id: string;
+  last_queued_at: string;
+}
+
+const RECALC_PENDING_COLUMNS = [
+  'version_id',
+  'last_queued_at',
+] as const satisfies readonly (keyof RecalcPendingRow)[];
+
 const COLLECTION_COLUMNS = [
   'version_id',
   'collected_at',
@@ -212,6 +223,7 @@ export const TABLE_COLUMNS: Record<TableName, readonly string[]> = {
   policy: POLICY_COLUMNS,
   service_map: SERVICE_MAP_COLUMNS,
   collection: COLLECTION_COLUMNS,
+  recalc_pending: RECALC_PENDING_COLUMNS,
 };
 
 /** `SELECT` list for a table, e.g. `id, project_id, …`. */
