@@ -1,4 +1,5 @@
 import type { Coverage, Locale } from '../../types';
+import { Box, Strong } from '../kit';
 
 /**
  * Coverage meter: code coverage and service coverage (SPEC §4, §8, §15).
@@ -16,18 +17,18 @@ export function CoverageMeter({ coverage, locale }: CoverageMeterProps) {
   const servicePercent = Math.round(coverage.serviceRatio * 100);
 
   return (
-    <div style={{ display: 'flex', gap: 24, padding: '8px 0', fontSize: '0.9em' }}>
-      <div>
-        <strong>{locale === 'fr' ? 'Tickets' : 'Issues'}:</strong> {coverage.issueCount}
-      </div>
-      <div>
-        <strong>{locale === 'fr' ? 'Code visible' : 'Code coverage'}:</strong>{' '}
+    <Box>
+      <Box>
+        <Strong>{locale === 'fr' ? 'Tickets' : 'Issues'}:</Strong> {coverage.issueCount}
+      </Box>
+      <Box>
+        <Strong>{locale === 'fr' ? 'Code visible' : 'Code coverage'}:</Strong>{' '}
         {coverage.issuesWithCode}/{coverage.issueCount} ({codePercent}%)
-      </div>
-      <div>
-        <strong>{locale === 'fr' ? 'Services connus' : 'Service coverage'}:</strong>{' '}
+      </Box>
+      <Box>
+        <Strong>{locale === 'fr' ? 'Services connus' : 'Service coverage'}:</Strong>{' '}
         {coverage.issuesWithService}/{coverage.issueCount} ({servicePercent}%)
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }

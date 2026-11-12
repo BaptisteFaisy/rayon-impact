@@ -1,6 +1,7 @@
 import { useLocale, useProject, useScreen } from './hooks';
 import { VerdictBanner } from './components/VerdictBanner';
 import type { Confidence, Locale, Verdict } from '../types';
+import { Box, List, ListItem, Text, Strong } from './kit';
 
 /**
  * Dashboard gadget: the versions of the next 14 days with their verdict
@@ -30,7 +31,7 @@ export function DashboardGadget() {
     projectId: project.id ?? '',
   });
 
-  if (screen.loading) return <p role="status">…</p>;
+  if (screen.loading) return <Box role="status">…</Box>;
   return <GadgetList rows={screen.data ?? []} locale={locale} />;
 }
 
@@ -40,31 +41,31 @@ export function GadgetList({ rows, locale }: { rows: GadgetRow[]; locale: Locale
 
   if (upcoming.length === 0) {
     return (
-      <p style={{ padding: 8, color: '#6B778C' }}>
+      <Text>
         {locale === 'fr'
           ? `Aucune version prévue dans les ${WINDOW_DAYS} prochains jours.`
           : `No release planned in the next ${WINDOW_DAYS} days.`}
-      </p>
+      </Text>
     );
   }
 
   return (
-    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+    <List type="unordered">
       {upcoming.map((row) => (
-        <li key={row.versionId} style={{ borderBottom: '1px solid #DFE1E6' }}>
-          <div style={{ padding: '4px 8px' }}>
-            <strong>{row.versionName}</strong>{' '}
-            <span style={{ color: '#6B778C' }}>{row.releaseDate}</span>
-          </div>
+        <ListItem key={row.versionId}>
+          <Box>
+            <Strong>{row.versionName}</Strong>{' '}
+            <Text>{row.releaseDate}</Text>
+          </Box>
           <VerdictBanner
             verdict={row.verdict}
             confidence={row.confidence}
             computedAt={row.computedAt}
             locale={locale}
           />
-        </li>
+        </ListItem>
       ))}
-    </ul>
+    </List>
   );
 }
 

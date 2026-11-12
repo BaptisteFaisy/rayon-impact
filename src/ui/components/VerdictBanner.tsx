@@ -1,7 +1,6 @@
-import Lozenge from '@atlaskit/lozenge';
-import SectionMessage from '@atlaskit/section-message';
 import { t } from '../../i18n/index';
 import type { Confidence, Locale, Verdict } from '../../types';
+import { Box, Lozenge, SectionMessage, Text } from '../kit';
 
 /**
  * The verdict banner: the first thing the release lead reads (SPEC §11).
@@ -31,21 +30,21 @@ export function VerdictBanner(props: VerdictBannerProps) {
   const confidenceText = t({ key: `confidence.${confidence}` }, locale);
 
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Box>
+      <Box>
         <Lozenge appearance={APPEARANCE[verdict]} isBold>
           {title}
         </Lozenge>
-        <span>{confidenceText}</span>
-        <span style={{ color: '#6B778C' }}>{computedAt}</span>
-      </div>
+        <Text>{confidenceText}</Text>
+        <Text>{computedAt}</Text>
+      </Box>
       {coverageNote ? (
-        <div style={{ marginTop: 8 }}>
+        <Box>
           <SectionMessage appearance="warning" title={confidenceText}>
             {coverageNote}
           </SectionMessage>
-        </div>
+        </Box>
       ) : null}
-    </div>
+    </Box>
   );
 }

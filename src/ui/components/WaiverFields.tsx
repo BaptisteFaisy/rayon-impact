@@ -1,4 +1,5 @@
 import type { Locale } from '../../types';
+import { Box, Label, TextArea, Textfield } from '../kit';
 
 /**
  * The two inputs of the waiver dialog, extracted so `WaiverDialog` stays under
@@ -17,26 +18,27 @@ export interface WaiverFieldsProps {
 
 export function WaiverFields({ locale, reason, hours, onReason, onHours }: WaiverFieldsProps) {
   return (
-    <div>
-      <label style={{ display: 'block', margin: '8px 0' }}>
-        <div>{locale === 'fr' ? 'Motif (obligatoire) :' : 'Reason (mandatory):'}</div>
-        <textarea
-          value={reason}
-          onChange={(event) => onReason(event.target.value)}
-          rows={3}
-          style={{ width: '100%', boxSizing: 'border-box' }}
-        />
-      </label>
-      <label style={{ display: 'block', margin: '8px 0' }}>
-        <div>{locale === 'fr' ? 'Durée (heures) :' : 'Duration (hours):'}</div>
-        <input
-          type="number"
-          min={1}
-          max={720}
-          value={hours}
-          onChange={(event) => onHours(Number(event.target.value) || 48)}
-        />
-      </label>
-    </div>
+    <Box>
+      <Label labelFor="waiver-reason">
+        {locale === 'fr' ? 'Motif (obligatoire) :' : 'Reason (mandatory):'}
+      </Label>
+      <TextArea
+        id="waiver-reason"
+        value={reason}
+        onChange={(event) => onReason(event.target.value)}
+        minimumRows={3}
+      />
+      <Label labelFor="waiver-hours">
+        {locale === 'fr' ? 'Durée (heures) :' : 'Duration (hours):'}
+      </Label>
+      <Textfield
+        id="waiver-hours"
+        type="number"
+        min={1}
+        max={720}
+        value={String(hours)}
+        onChange={(event) => onHours(Number(event.target.value) || 48)}
+      />
+    </Box>
   );
 }

@@ -1,3 +1,5 @@
+import { Box, Label, Textfield } from '../kit';
+
 /**
  * A comma-separated list field, used for the watched JSM projects and the
  * waiver approvers (SPEC §11). Extracted so the settings screen stays short.
@@ -6,22 +8,22 @@
  */
 
 export interface ListFieldProps {
+  id: string;
   label: string;
   values: string[];
   onChange: (values: string[]) => void;
 }
 
-export function ListField({ label, values, onChange }: ListFieldProps) {
+export function ListField({ id, label, values, onChange }: ListFieldProps) {
   return (
-    <label style={{ display: 'block', margin: '8px 0' }}>
-      <div>{label}</div>
-      <input
-        type="text"
+    <Box>
+      <Label labelFor={id}>{label}</Label>
+      <Textfield
+        id={id}
         value={values.join(', ')}
         onChange={(event) => onChange(splitList(event.target.value))}
-        style={{ width: '100%', boxSizing: 'border-box' }}
       />
-    </label>
+    </Box>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useIssue, useLocale, useProject, useScreen } from './hooks';
 import { t } from '../i18n/index';
 import type { Locale, ReleaseDossier } from '../types';
+import { Box, List, ListItem, Text } from './kit';
 
 /**
  * The issue panel: one line telling the developer whether this ticket holds a
@@ -34,10 +35,10 @@ export function IssueContext() {
   });
 
   if (screen.loading) {
-    return <span role="status">…</span>;
+    return <Box role="status">…</Box>;
   }
   if (!screen.data) {
-    return <span>{noDossierText(locale)}</span>;
+    return <Text>{noDossierText(locale)}</Text>;
   }
   return (
     <IssueContextView data={screen.data} issueId={issue.id ?? ''} locale={locale} />
@@ -55,24 +56,24 @@ export function IssueContextView({
   locale: Locale;
 }) {
   if (data.observationMode) {
-    return <span>{noDossierText(locale)}</span>;
+    return <Text>{noDossierText(locale)}</Text>;
   }
   const lines = data.versions.map((version) => describe(version, issueId, locale));
   if (lines.length === 0) {
     return (
-      <span>
+      <Text>
         {locale === 'fr'
           ? 'Ce ticket ne concerne aucune version suivie.'
           : 'This ticket is not part of any tracked release.'}
-      </span>
+      </Text>
     );
   }
   return (
-    <ul style={{ margin: 0, paddingLeft: 20 }}>
+    <List type="unordered">
       {lines.map((line, index) => (
-        <li key={index}>{line}</li>
+        <ListItem key={index}>{line}</ListItem>
       ))}
-    </ul>
+    </List>
   );
 }
 

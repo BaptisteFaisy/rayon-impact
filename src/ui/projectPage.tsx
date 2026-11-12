@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import Tabs, { Tab, TabList, TabPanel } from '@atlaskit/tabs';
 import { invoke } from '@forge/bridge';
 import { t } from '../i18n/index';
 import { useLocale, useProject, useScreen } from './hooks';
@@ -13,6 +12,7 @@ import { SignalsTab } from './tabs/SignalsTab';
 import { TeamsTab } from './tabs/TeamsTab';
 import { WaiversTab } from './tabs/WaiversTab';
 import { HistoryTab } from './tabs/HistoryTab';
+import { Box, Button, Label, Select, Tab, TabList, TabPanel, Tabs, Text } from './kit';
 import type {
   ImpactGraph,
   ImpactedTeam,
@@ -54,26 +54,26 @@ export function ProjectPage() {
     if (!versionId && rows.length > 0) setVersionId(rows[0].versionId);
   }, [rows, versionId]);
 
-  if (versions.loading) return <p role="status">…</p>;
+  if (versions.loading) return <Box role="status">…</Box>;
   if (rows.length === 0) return <EmptyProject locale={locale} />;
 
   return (
-    <div>
+    <Box>
       <VersionPicker rows={rows} selected={versionId} onSelect={setVersionId} locale={locale} />
       {versionId ? (
         <Dossier versionId={versionId} projectId={project.id ?? ''} locale={locale} />
       ) : null}
-    </div>
+    </Box>
   );
 }
 
 function EmptyProject({ locale }: { locale: Locale }) {
   return (
-    <p style={{ padding: 12 }}>
+    <Text>
       {locale === 'fr'
         ? 'Aucun dossier de release pour ce projet. Ouvrez une version et laissez l’app la calculer.'
         : 'No release dossier for this project yet. Open a version and let the app compute it.'}
-    </p>
+    </Text>
   );
 }
 
@@ -89,20 +89,18 @@ export function VersionPicker({
   locale: Locale;
 }) {
   return (
-    <div style={{ padding: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-      <label htmlFor="version-select">{locale === 'fr' ? 'Version :' : 'Version:'}</label>
-      <select
-        id="version-select"
-        value={selected}
-        onChange={(event) => onSelect(event.target.value)}
-      >
-        {rows.map((row) => (
-          <option key={row.versionId} value={row.versionId}>
-            {row.versionName} — {t({ key: `verdict.${row.verdict}` }, locale)}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Box>
+      <Label labelFor="version-select">{locale === 'fr' ? 'Version :' : 'Version:'}</Label>
+      <Select
+        inputId="version-select"
+        options={rows.map((row) => ({
+          label: `${row.versionName} — ${t({ key: `verdict.${row.verdict}` }, locale)}`,
+          value: row.versionId,
+        }))}
+        value={rows.find((row) => row.versionId === selected) ?? null}
+        onChange={(option) => option && onSelect(option.value)}
+      />
+    </Box>
   );
 }
 
@@ -130,18 +128,18 @@ function Dossier({
   const [deciding, setDeciding] = useState(false);
   const [tab, setTab] = useState(0);
 
-  if (dossier.loading) return <p role="status">…</p>;
-  if (!dossier.data) return <p style={{ padding: 12 }}>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</p>;
+  if (dossier.loading) return <Box role="status">…</Box>;
+  if (!dossier.data) return <Text>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</Text>;
 
   const { snapshot } = dossier.data;
   return (
-    <div>
+    <Box>
       <DossierHeader snapshot={snapshot} diff={diff.data} locale={locale} />
-      <div style={{ padding: '0 12px 8px' }}>
-        <button type="button" onClick={() => setDeciding(true)}>
+      <Box>
+        <Button type="button" onClick={() => setDeciding(true)}>
           {t({ key: 'decision.openButton' }, locale)}
-        </button>
-      </div>
+        </Button>
+      </Box>
       <DossierTabs
         tab={tab}
         onTab={setTab}
@@ -162,7 +160,7 @@ function Dossier({
         onWaiveDone={() => setWaiving(null)}
         onDecisionDone={() => setDeciding(false)}
       />
-    </div>
+    </Box>
   );
 }
 
@@ -178,7 +176,7 @@ function DossierDialogs(props: {
 }) {
   const { waiving, deciding, versionId, verdict, locale, onWaiveDone, onDecisionDone } = props;
   return (
-    <div>
+    <Box>
       {waiving ? (
         <WaiverDialog
           signal={waiving}
@@ -196,10 +194,9 @@ function DossierDialogs(props: {
           onDone={onDecisionDone}
         />
       ) : null}
-    </div>
+    </Box>
   );
 }
-
 
 /** Verdict, coverage, what changed since the last dossier, and the summary. */
 export function DossierHeader({
@@ -212,7 +209,7 @@ export function DossierHeader({
   locale: Locale;
 }) {
   return (
-    <div>
+    <Box>
       <VerdictBanner
         verdict={snapshot.verdict}
         confidence={snapshot.confidence}
@@ -221,10 +218,10 @@ export function DossierHeader({
       />
       <CoverageMeter coverage={snapshot.coverage} locale={locale} />
       <DiffBanner diff={diff} locale={locale} />
-      <div style={{ padding: '0 12px' }}>
-        <p style={{ whiteSpace: 'pre-line' }}>{snapshot.narrative}</p>
-      </div>
-    </div>
+      <Box>
+        <Text>{snapshot.narrative}</Text>
+      </Box>
+    </Box>
   );
 }
 
@@ -242,7 +239,7 @@ export function DossierTabs(props: {
   const { tab, onTab, dossier, graph, teams, locale, waiving, onWaive, versionId } = props;
   const { signals, waivers, decisions, outcome } = dossier;
   return (
-    <div style={{ padding: '0 12px' }}>
+    <Box>
       <Tabs id="rayon-impact-tabs" selected={tab} onChange={(index) => onTab(Number(index))}>
         <TabList>
           <Tab>{locale === 'fr' ? 'Signaux' : 'Signals'}</Tab>
@@ -273,13 +270,13 @@ export function DossierTabs(props: {
           <HistoryTab decisions={decisions} outcome={outcome} locale={locale} />
         </TabPanel>
       </Tabs>
-    </div>
+    </Box>
   );
 }
 
 function GraphPanel({ graph, locale }: { graph: ImpactGraph | null; locale: Locale }) {
   if (!graph) {
-    return <p>{locale === 'fr' ? 'Graphe indisponible.' : 'Graph unavailable.'}</p>;
+    return <Text>{locale === 'fr' ? 'Graphe indisponible.' : 'Graph unavailable.'}</Text>;
   }
   return <GraphView graph={graph} locale={locale} />;
 }

@@ -63,7 +63,7 @@ describe('screen 1 — jira:projectPage', () => {
 
   it('renders every tab body: graph, teams, waivers, history', () => {
     const graph = renderToStaticMarkup(projectPageLoaded(demoData, 'en', 1));
-    expect(graph).toContain('aria-label="impact graph"');
+    expect(graph).toContain('alt="Impact graph"');
     const teams = renderToStaticMarkup(projectPageLoaded(demoData, 'en', 2));
     expect(teams).toContain('Mobile');
     expect(teams).toContain('mobile-app');
@@ -124,7 +124,7 @@ describe('screen 3 — jira:projectSettingsPage', () => {
   it('renders one severity row per signal of the catalogue (EN)', () => {
     const html = renderToStaticMarkup(settingsLoaded(demoData, 'en'));
     expect(html).toContain('Release impact settings');
-    expect(html).toContain('<table');
+    expect(html).toContain('<select');
     for (const code of listSignalCodes()) {
       expect(html).toContain(code);
     }

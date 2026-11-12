@@ -2,6 +2,7 @@ import type { GraphNode, GraphNodeKind, ImpactGraph, Locale } from '../../types'
 import { GRAPH_NODE_LIMIT } from '../../types';
 import { graphToListView } from '../../engine/graph';
 import { t } from '../../i18n/index';
+import { Box, Image, Link, List, ListItem, Text, Strong } from '../kit';
 
 /**
  * Impact graph view, with its list equivalent (SPEC §11: the graph always has a
@@ -45,6 +46,46 @@ function positionOf(nodes: GraphNode[], node: GraphNode): { x: number; y: number
   return { x: 360 + ring * Math.cos(angle), y: 260 + ring * Math.sin(angle) };
 }
 
+/** Échappe le texte SVG (les libellés de tickets peuvent contenir & ou <). */
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+/**
+ * Le graphe en image SVG (data-URI).
+ *
+ * UI Kit 2 n'a pas de primitive SVG : le document rendu ne contient que des
+ * composants que la plateforme dessine. Le graphe part donc en image, et la
+ * liste équivalente ci-dessous reste l'équivalent accessible (SPEC §11).
+ */
+function graphImage(
+  graph: ImpactGraph,
+  positions: Map<string, { x: number; y: number }>,
+): string {
+  const edges = graph.edges
+    .map((edge) => {
+      const from = positions.get(edge.from);
+      const to = positions.get(edge.to);
+      if (!from || !to) return '';
+      return `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#C1C7D0" stroke-width="1"/>`;
+    })
+    .join('');
+  const nodes = graph.nodes
+    .map((node) => {
+      const position = positions.get(node.id);
+      if (!position) return '';
+      const radius = node.kind === 'version' ? 10 : 6;
+      const label = escapeXml(node.restricted ? '•' : node.label);
+      return `<circle cx="${position.x}" cy="${position.y}" r="${radius}" fill="${COLOR[node.kind]}"/><text x="${position.x + 10}" y="${position.y + 4}" font-size="10" fill="#172B4D">${label}</text>`;
+    })
+    .join('');
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520">${edges}${nodes}</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 export function GraphView({ graph, locale }: GraphViewProps) {
   const positions = new Map<string, { x: number; y: number }>();
   for (const node of graph.nodes) {
@@ -52,77 +93,48 @@ export function GraphView({ graph, locale }: GraphViewProps) {
   }
 
   return (
-    <div>
+    <Box>
       {graph.truncated ? (
-        <p style={{ color: '#6B778C' }}>
+        <Text>
           {locale === 'fr'
             ? `Graphe tronqué : plus de ${GRAPH_NODE_LIMIT} nœuds. La liste ci-dessous reste complète.`
             : `Graph truncated: more than ${GRAPH_NODE_LIMIT} nodes. The list below stays complete.`}
-        </p>
+        </Text>
       ) : null}
-      <svg width="720" height="520" role="img" aria-label="impact graph">
-        {graph.edges.map((edge, index) => {
-          const from = positions.get(edge.from);
-          const to = positions.get(edge.to);
-          if (!from || !to) return null;
-          return (
-            <line
-              key={`${edge.from}-${edge.to}-${index}`}
-              x1={from.x}
-              y1={from.y}
-              x2={to.x}
-              y2={to.y}
-              stroke="#C1C7D0"
-              strokeWidth={1}
-            />
-          );
-        })}
-        {graph.nodes.map((node) => {
-          const position = positions.get(node.id);
-          if (!position) return null;
-          return (
-            <g key={node.id}>
-              <circle cx={position.x} cy={position.y} r={node.kind === 'version' ? 10 : 6} fill={COLOR[node.kind]} />
-              <text x={position.x + 10} y={position.y + 4} fontSize={10} fill="#172B4D">
-                {node.restricted ? '•' : node.label}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      <Image src={graphImage(graph, positions)} alt={locale === 'fr' ? "Graphe d'impact" : 'Impact graph'} />
       <ListEquivalent graph={graph} locale={locale} />
-    </div>
+    </Box>
   );
 }
 
 /** The accessible counterpart: the engine's list view, with translated groups. */
 function ListEquivalent({ graph, locale }: GraphViewProps) {
   return (
-    <div style={{ marginTop: 12 }}>
+    <Box>
       {graphToListView(graph).map((section) => (
-        <div key={section.group.key} style={{ marginBottom: 8 }}>
-          <strong>{t(section.group, locale)}</strong> ({section.items.length})
-          <ul style={{ paddingLeft: 20, margin: '4px 0' }}>
+        <Box key={section.group.key}>
+          <Strong>{t(section.group, locale)}</Strong> ({section.items.length})
+          <List type="unordered">
             {section.items.map((item, index) => (
-              <li key={`${item.label}-${index}`}>
+              <ListItem key={`${item.label}-${index}`}>
                 {item.url ? (
-                  <a href={item.url} target="_blank" rel="noreferrer">
+                  <Link href={item.url} openNewTab>
                     {item.label}
-                  </a>
+                  </Link>
                 ) : (
                   item.label
                 )}
                 {item.restricted ? (
-                  <span style={{ color: '#6B778C' }}>
+                  <Text>
                     {' '}
                     — {locale === 'fr' ? 'masqué' : 'hidden'}
-                  </span>
+                  </Text>
                 ) : null}
-              </li>
+              </ListItem>
             ))}
-          </ul>
-        </div>
+          </List>
+        </Box>
       ))}
-    </div>
+    </Box>
   );
 }
