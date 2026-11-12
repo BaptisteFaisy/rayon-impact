@@ -6,10 +6,13 @@ import type { Confidence, Locale, Verdict } from '../types';
  * Dashboard gadget: the versions of the next 14 days with their verdict
  * (SPEC §11, RI-16).
  *
+ * `GadgetList` takes the rows as props so the loaded state is renderable in
+ * tests (`renderToStaticMarkup` never runs `useScreen`'s effect).
+ *
  * Rule: files < 500 lines, functions < 50 lines.
  */
 
-interface GadgetRow {
+export interface GadgetRow {
   versionId: string;
   versionName: string;
   verdict: Verdict;
@@ -27,10 +30,15 @@ export function DashboardGadget() {
     projectId: project.id ?? '',
   });
 
-  if (screen.loading) return <p>…</p>;
-  const rows = (screen.data ?? []).filter((row) => withinWindow(row.releaseDate));
+  if (screen.loading) return <p role="status">…</p>;
+  return <GadgetList rows={screen.data ?? []} locale={locale} />;
+}
 
-  if (rows.length === 0) {
+/** The loaded gadget: upcoming versions only, each with its verdict banner. */
+export function GadgetList({ rows, locale }: { rows: GadgetRow[]; locale: Locale }) {
+  const upcoming = rows.filter((row) => withinWindow(row.releaseDate));
+
+  if (upcoming.length === 0) {
     return (
       <p style={{ padding: 8, color: '#6B778C' }}>
         {locale === 'fr'
@@ -41,9 +49,9 @@ export function DashboardGadget() {
   }
 
   return (
-    <div>
-      {rows.map((row) => (
-        <div key={row.versionId} style={{ borderBottom: '1px solid #DFE1E6' }}>
+    <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+      {upcoming.map((row) => (
+        <li key={row.versionId} style={{ borderBottom: '1px solid #DFE1E6' }}>
           <div style={{ padding: '4px 8px' }}>
             <strong>{row.versionName}</strong>{' '}
             <span style={{ color: '#6B778C' }}>{row.releaseDate}</span>
@@ -52,11 +60,11 @@ export function DashboardGadget() {
             verdict={row.verdict}
             confidence={row.confidence}
             computedAt={row.computedAt}
-            locale={locale as Locale}
+            locale={locale}
           />
-        </div>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 

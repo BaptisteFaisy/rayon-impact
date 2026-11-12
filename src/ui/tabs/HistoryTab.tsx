@@ -1,3 +1,4 @@
+import { t } from '../../i18n/index';
 import type { Decision, Locale, Outcome } from '../../types';
 
 /**
@@ -18,16 +19,29 @@ export function HistoryTab({ decisions, outcome, locale }: HistoryTabProps) {
     <div>
       <ul>
         {decisions.map((decision) => (
-          <li key={decision.id}>
-            {decision.decidedAt} — <strong>{decision.decision}</strong> (
-            {decision.verdictAtDecision}) par {decision.decidedBy}
-            {decision.note ? ` · ${decision.note}` : ''}
-          </li>
+          <li key={decision.id}>{decisionLine(decision, locale)}</li>
         ))}
       </ul>
       <OutcomeLine outcome={outcome} locale={locale} />
     </div>
   );
+}
+
+/** One decision, fully localized: date, kind, verdict of the moment, author. */
+function decisionLine(decision: Decision, locale: Locale): string {
+  const line = t(
+    {
+      key: 'history.entry',
+      params: {
+        at: decision.decidedAt,
+        decision: t({ key: `decision.${decision.decision}` }, locale),
+        verdict: t({ key: `verdict.${decision.verdictAtDecision}` }, locale),
+        by: decision.decidedBy,
+      },
+    },
+    locale,
+  );
+  return decision.note ? `${line} · ${decision.note}` : line;
 }
 
 /** No outcome yet is stated as such: absence of data is never good news. */
@@ -43,9 +57,14 @@ function OutcomeLine({ outcome, locale }: { outcome: Outcome | null; locale: Loc
   }
   return (
     <p>
-      {locale === 'fr' ? 'Bilan 72 h : ' : '72 h outcome: '}
-      {outcome.incidents.length} {locale === 'fr' ? 'incident(s)' : 'incident(s)'}
-      {outcome.rollback ? (locale === 'fr' ? ' · rollback' : ' · rollback') : ''}
+      {t(
+        {
+          key: 'history.outcome',
+          params: { count: outcome.incidents.length },
+        },
+        locale,
+      )}
+      {outcome.rollback ? ` · ${t({ key: 'history.rollback' }, locale)}` : ''}
     </p>
   );
 }
