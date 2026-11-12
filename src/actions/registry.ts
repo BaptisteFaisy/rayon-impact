@@ -1,5 +1,5 @@
 /**
- * The 8 actions of SPEC §10, declared once.
+ * The 9 actions of SPEC §10, declared once.
  *
  * `ACTIONS` is the single table reused by three consumers: the Forge resolver
  * (src/index.ts), the `action` modules and the `rovo:mcp` tool list — one
@@ -27,6 +27,8 @@ import { getReleaseOutcome, listImpactedTeams } from './teams';
 import {
   closeWaiverAction,
   parseCloseWaiverInput,
+  parseRecordDecisionInput,
+  recordDecisionAction,
   requestWaiver,
   simulateWithout,
 } from './decisions';
@@ -39,6 +41,7 @@ export const ACTION_KEYS: readonly ActionKey[] = [
   'list-impacted-teams',
   'simulate-without',
   'get-release-outcome',
+  'record-decision',
   'request-waiver',
   'close-waiver',
 ] as const;
@@ -151,6 +154,31 @@ export const ACTIONS: Record<ActionKey, ActionDefinition> = {
     inputs: { versionId: VERSION_ID },
     parse: parseGetReleaseOutcomeInput,
     handler: getReleaseOutcome,
+  }),
+
+  'record-decision': defineAction({
+    key: 'record-decision',
+    verb: 'CREATE',
+    name: 'Record release decision',
+    description:
+      'Records the human decision on a release version (ship, hold or delay) with an optional note. The verdict and the decider identity come from the saved dossier and the Forge context, never from the inputs. Decisions are never deleted.',
+    inputs: {
+      versionId: VERSION_ID,
+      decision: {
+        title: 'Decision',
+        type: 'string',
+        required: true,
+        description: 'The decision taken by the team: ship, hold or delay.',
+      },
+      note: {
+        title: 'Note',
+        type: 'string',
+        required: false,
+        description: 'Optional note recorded with the decision, up to 500 characters.',
+      },
+    },
+    parse: parseRecordDecisionInput,
+    handler: recordDecisionAction,
   }),
 
   'request-waiver': defineAction({

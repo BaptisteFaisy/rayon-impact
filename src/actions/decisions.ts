@@ -1,7 +1,10 @@
 /**
- * Decision actions: `simulate-without`, `request-waiver`, `close-waiver`
- * (SPEC §10).
+ * Decision actions: `record-decision`, `simulate-without`, `request-waiver`,
+ * `close-waiver` (SPEC §10).
  *
+ * `record-decision` stores the human decision with the verdict of the saved
+ * dossier — the verdict is never taken from the inputs, and the decider is the
+ * Forge viewer (RI-08, R2 §2.3). Decisions accumulate, never deleted (SPEC §15).
  * `simulate-without` replays the deterministic verdict on the saved signals
  * minus a set of tickets — no live collection, no guess (SPEC §12, RI-13).
  * `request-waiver` either creates the waiver or answers with a motivated
@@ -17,13 +20,14 @@ import {
   signalsWithoutIssues,
   simulateWithout as simulateVerdict,
 } from '../engine/simulate';
+import { latestDecision, recordDecision } from '../engine/decision';
 import {
   closeWaiver,
   grantWaiver,
   validateWaiverRequest,
   type WaiverRequest,
 } from '../engine/waiver';
-import type { MessageRef, Policy, Viewer, Waiver } from '../types';
+import type { Decision, DecisionKind, MessageRef, Policy, Verdict, Viewer, Waiver } from '../types';
 import { requireDossier, requirePolicy } from './release';
 import { ActionError, optionalString, parseIssueKeys, requireString } from './types';
 import type {
@@ -244,4 +248,107 @@ export async function closeWaiverAction(
     versionId: closed.versionId,
   });
   return { closed: true, waiver: closed };
+}
+
+/* --------------------------------------------------------- record-decision */
+
+/**
+ * `record-decision` contract (RI-08). Kept here, next to its handler, so
+ * `types.ts` stays under the 500-line limit; same shape as `close-waiver`.
+ */
+export interface RecordDecisionInput {
+  versionId: string;
+  decision: DecisionKind;
+  /** Optional, bounded by `MAX_DECISION_NOTE`; trimmed by the engine. */
+  note?: string;
+}
+
+export interface RecordDecisionOutput {
+  /** The stored decision, with the dossier verdict frozen inside (RI-08). */
+  decision: Decision;
+  /** The verdict of the saved dossier at the moment of the decision. */
+  verdictAtDecision: Verdict;
+  /**
+   * True when the verdict differs from the one frozen in the previous
+   * decision — false when no decision was ever recorded (SPEC §15).
+   */
+  verdictChanged: boolean;
+}
+
+/** Bounded note length, refused explicitly beyond (SPEC §16 case limits). */
+export const MAX_DECISION_NOTE = 500;
+
+/**
+ * Runtime values of the domain `DecisionKind`. `satisfies` rejects any value
+ * outside the union, and the exported guard fails to compile if the domain
+ * ever adds a kind missing here — the list is derived, never invented.
+ */
+export const DECISION_KINDS = ['ship', 'hold', 'delay'] as const satisfies readonly DecisionKind[];
+
+export type DecisionKindsExhaustive =
+  Exclude<DecisionKind, (typeof DECISION_KINDS)[number]> extends never ? true : never;
+
+/** Compile-time proof that `DECISION_KINDS` covers every `DecisionKind`. */
+export const DECISION_KINDS_EXHAUSTIVE: DecisionKindsExhaustive = true;
+
+/** Caller-facing validation of the `decision` input (LLM-provided string). */
+export function parseDecisionKind(value: string): DecisionKind {
+  const token = value.trim().toLowerCase();
+  if (!(DECISION_KINDS as readonly string[]).includes(token)) {
+    throw new ActionError(
+      'invalid-input',
+      `Unknown decision "${value}". Use ${DECISION_KINDS.join(', ')}.`,
+    );
+  }
+  return token as DecisionKind;
+}
+
+export function parseRecordDecisionInput(raw: Record<string, unknown>): RecordDecisionInput {
+  const versionId = requireString(raw, 'versionId');
+  const decision = parseDecisionKind(requireString(raw, 'decision'));
+  const note = optionalString(raw, 'note');
+  if (note !== undefined && note.length > MAX_DECISION_NOTE) {
+    throw new ActionError(
+      'invalid-input',
+      `Input "note" is limited to ${MAX_DECISION_NOTE} characters (got ${note.length}).`,
+    );
+  }
+  return note === undefined ? { versionId, decision } : { versionId, decision, note };
+}
+
+/**
+ * `record-decision`: store the human decision with the verdict of the moment
+ * (RI-08). The verdict comes from the saved dossier (`requireDossier`, never a
+ * live collection — SPEC §12) and the decider from the Forge viewer, never
+ * from the inputs (R2 §2.3). The id, the note trimming and the shape are the
+ * engine's (`recordDecision`) — nothing is recopied here. Decisions are only
+ * appended, never deleted (SPEC §15).
+ */
+export async function recordDecisionAction(
+  input: RecordDecisionInput,
+  deps: ActionDeps,
+): Promise<RecordDecisionOutput> {
+  const dossier = await requireDossier(deps, input.versionId);
+  const verdict = dossier.snapshot.verdict;
+  const previous = latestDecision(await deps.store.getDecisions(input.versionId));
+  const decision = recordDecision({
+    versionId: input.versionId,
+    snapshotId: dossier.snapshot.id,
+    decidedBy: deps.viewer.accountId,
+    decision: input.decision,
+    verdictAtDecision: verdict,
+    ...(input.note === undefined ? {} : { note: input.note }),
+    now: deps.clock.now(),
+  });
+  await deps.store.saveDecision(decision);
+  deps.logger.log('info', 'action.record-decision', {
+    versionId: input.versionId,
+    decision: decision.decision,
+    verdict,
+  });
+  return {
+    decision,
+    verdictAtDecision: verdict,
+    verdictChanged: previous !== null && previous.verdictAtDecision !== verdict,
+  };
 }
