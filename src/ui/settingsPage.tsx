@@ -4,7 +4,7 @@ import { useLocale, useProject, useScreen } from './hooks';
 import { SeverityTable } from './components/SeverityTable';
 import { ListField } from './components/ListField';
 import type { Locale, Policy } from '../types';
-import { Box, Button, Checkbox, Heading, Label, SectionMessage } from './kit';
+import { Box, Button, Checkbox, Heading, Label, SectionMessage, Text } from './kit';
 
 /**
  * Project settings: severity per signal (RI-11), watched JSM projects, who may
@@ -27,6 +27,7 @@ export function SettingsPage() {
   const policy = draft ?? screen.data ?? emptyPolicy(project.id ?? '');
 
   if (screen.loading) return <Box role="status">…</Box>;
+  if (screen.error) return <Text>{screen.error}</Text>;
 
   async function save() {
     setError(null);

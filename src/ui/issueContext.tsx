@@ -37,6 +37,7 @@ export function IssueContext() {
   if (screen.loading) {
     return <Box role="status">…</Box>;
   }
+  if (screen.error) return <Text>{screen.error}</Text>;
   if (!screen.data) {
     return <Text>{noDossierText(locale)}</Text>;
   }
