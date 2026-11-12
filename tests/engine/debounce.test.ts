@@ -3,6 +3,7 @@ import {
   MIN_RECOMPUTE_INTERVAL_SECONDS,
   coalesceRequests,
   shouldRecompute,
+  trailingPass,
 } from '../../src/engine/debounce';
 import type { RecomputeMessage } from '../../src/ports';
 
@@ -119,5 +120,76 @@ describe('engine/debounce — coalesceRequests', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]?.reason).toBe('event');
     expect(merged[0]?.requestedAt).toBe('2026-11-11T10:00:00.000Z');
+  });
+});
+
+/* ------------------------------------------------- trailingPass (SPEC §12) */
+
+const QUEUED = '2026-11-12T10:00:00.000Z';
+const COLLECT = '2026-11-12T10:00:01.000Z';
+const DEFERRED_AT = '2026-11-12T10:00:12.000Z';
+
+function deferredAt(requestedAt: string): { reason: RecomputeMessage['reason']; requestedAt: string } {
+  return { reason: 'event', requestedAt };
+}
+
+describe('engine/debounce — trailingPass', () => {
+  it('n’a rien à rejouer quand aucune demande n’est reportée', () => {
+    expect(trailingPass(QUEUED, null, COLLECT, '2026-11-12T10:00:10.000Z')).toEqual({
+      action: 'none',
+      waitMs: 0,
+    });
+  });
+
+  it('solde une demande déjà vue par la collecte qui se termine', () => {
+    const decision = trailingPass(
+      QUEUED,
+      deferredAt('2026-11-12T10:00:00.500Z'),
+      COLLECT,
+      '2026-11-12T10:00:10.000Z',
+    );
+    expect(decision).toEqual({ action: 'clear', waitMs: 0 });
+  });
+
+  it('rejoue une demande arrivée pendant la collecte, en fin de fenêtre', () => {
+    const decision = trailingPass(QUEUED, deferredAt(DEFERRED_AT), COLLECT, '2026-11-12T10:00:20.000Z');
+    expect(decision.action).toBe('run');
+    expect(decision.waitMs).toBe(40_000);
+  });
+
+  it('ne fait plus attendre une fois la fenêtre écoulée', () => {
+    expect(trailingPass(QUEUED, deferredAt(DEFERRED_AT), COLLECT, '2026-11-12T10:01:30.000Z')).toEqual({
+      action: 'run',
+      waitMs: 0,
+    });
+  });
+
+  it('fail open sur un requestedAt illisible : jamais de dossier gelé', () => {
+    expect(trailingPass(QUEUED, deferredAt('pas-une-date'), COLLECT, '2026-11-12T10:00:20.000Z')).toEqual({
+      action: 'run',
+      waitMs: 0,
+    });
+  });
+
+  it('fail open sur un lastQueuedAt illisible', () => {
+    expect(trailingPass('illisible', deferredAt(DEFERRED_AT), COLLECT, '2026-11-12T10:00:20.000Z')).toEqual({
+      action: 'run',
+      waitMs: 0,
+    });
+  });
+
+  it('borne l’attente à la fenêtre quand l’horloge a dérivé', () => {
+    const decision = trailingPass(
+      '2026-11-12T10:05:00.000Z',
+      deferredAt(DEFERRED_AT),
+      COLLECT,
+      '2026-11-12T10:00:20.000Z',
+    );
+    expect(decision).toEqual({ action: 'run', waitMs: MIN_RECOMPUTE_INTERVAL_SECONDS * 1000 });
+  });
+
+  it('honore un intervalle personnalisé', () => {
+    const decision = trailingPass(QUEUED, deferredAt(DEFERRED_AT), COLLECT, '2026-11-12T10:00:20.000Z', 300);
+    expect(decision.waitMs).toBe(280_000);
   });
 });

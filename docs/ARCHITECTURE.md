@@ -107,7 +107,7 @@ live waiver does), and does not invent timestamps (`ctx.now`).
 | `graph.ts` | `buildImpactGraph` and `graphToListView`, deterministic truncation |
 | `outcome.ts` | the 72 h window: which incidents count, their duration, the summary |
 | `decision.ts` | `recordDecision` (with the verdict of the moment), `latestDecision` |
-| `debounce.ts` | at most one recompute per version per minute, with reason priority |
+| `debounce.ts` | at most one recompute per version per minute, with reason priority; what the window holds back is deferred, never dropped (`trailingPass`) |
 
 ## 3. Flows
 
@@ -125,6 +125,9 @@ live waiver does), and does not invent timestamps (`ctx.now`).
    The answer is at most one message per version per minute
    (MIN_RECOMPUTE_INTERVAL_SECONDS = 60); reasons coalesce by priority
    manual > event > schedule > outcome, so a user click never gets downgraded.
+   A request that falls inside the window is NOT dropped: it is held back in
+   `recalc_deferred` (one row per version, coalesced) for the trailing pass of
+   step 4 and, failing that, for the hourly sweep — "regroupé, jamais jeté".
                     │
                     v
 3. JobQueue.publish(RecomputeMessage)     Forge queue
@@ -134,6 +137,11 @@ live waiver does), and does not invent timestamps (`ctx.now`).
    recomputeRelease(deps, request) — delivery is "at least once" and there is no
    dead-letter queue, so the pipeline must be safe to replay: a snapshot is keyed
    by (version, computedAt) and the dossier read always takes the latest one.
+   Right after a successful recompute it runs the TRAILING PASS
+   (src/triggers/trailing.ts): whatever the window held back for that version is
+   replayed, after the wait the one-per-minute rule requires. Bounded twice —
+   MAX_TRAILING_PASSES = 3 and a 480 s budget against the 900 s timeout — so an
+   invocation never runs away; what is left goes to the hourly sweep.
                     │
                     v
 5. Pipeline (src/engine/pipeline.ts, not written yet) with the injected deps:

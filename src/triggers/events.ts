@@ -94,16 +94,44 @@ export interface RecomputeTarget {
 export interface RecomputeGate {
   lastQueuedAt(versionId: string): Promise<string | null>;
   markQueued(versionId: string, at: string): Promise<void>;
+  /**
+   * Holds back a request that fell inside the window: "regroupé, jamais jeté"
+   * (SPEC §12, §16). Implementations coalesce it with the one already held back,
+   * with `coalesceRequests`: strongest reason wins, earliest request on a tie.
+   */
+  deferRequest(request: RecomputeMessage, deferredAt: string): Promise<void>;
+  /** The request held back for a version, or null. Read without clearing. */
+  deferredRequest(versionId: string): Promise<RecomputeMessage | null>;
+  /** Forgets what was held back for a version. Idempotent. */
+  clearDeferred(versionId: string): Promise<void>;
+  /** Everything held back, oldest first, bounded: the hourly safety net. */
+  listDeferred(limit: number): Promise<RecomputeMessage[]>;
 }
 
 export function createMemoryGate(): RecomputeGate {
   const stamps = new Map<string, string>();
+  const held = new Map<string, RecomputeMessage>();
   return {
     async lastQueuedAt(versionId: string): Promise<string | null> {
       return stamps.get(versionId) ?? null;
     },
     async markQueued(versionId: string, at: string): Promise<void> {
       stamps.set(versionId, at);
+    },
+    async deferRequest(request: RecomputeMessage, _deferredAt: string): Promise<void> {
+      const known = held.get(request.versionId);
+      held.set(request.versionId, coalesceRequests(known === undefined ? [] : [known], request)[0]);
+    },
+    async deferredRequest(versionId: string): Promise<RecomputeMessage | null> {
+      return held.get(versionId) ?? null;
+    },
+    async clearDeferred(versionId: string): Promise<void> {
+      held.delete(versionId);
+    },
+    async listDeferred(limit: number): Promise<RecomputeMessage[]> {
+      return [...held.values()]
+        .sort((left, right) => (left.requestedAt < right.requestedAt ? -1 : 1))
+        .slice(0, Math.max(0, limit));
     },
   };
 }
@@ -117,6 +145,13 @@ export interface EnqueueDeps {
   /** Overrides the 60 s debounce window (SPEC §12). */
   minIntervalSeconds?: number;
 }
+
+/**
+ * Borne du filet de sécurité horaire : le balayage ne relit jamais plus de
+ * demandes reportées que de versions suivies en pratique (SPEC §12). La porte
+ * SQL applique la même borne, d'où une seule constante partagée.
+ */
+export const MAX_DEFERRED_FLUSH = 50;
 
 export interface TriggerDeps extends EnqueueDeps {
   /**
@@ -254,7 +289,11 @@ export async function enqueueDue(
   for (const request of coalesceBatch(requests)) {
     const lastQueuedAt = await deps.gate.lastQueuedAt(request.versionId);
     if (!shouldRecompute(lastQueuedAt, now, deps.minIntervalSeconds)) {
-      deps.logger.log('debug', 'recompute skipped, inside the debounce window', {
+      // Regroupé, jamais jeté (SPEC §12) : la demande est conservée puis rejouée
+      // par la passe finale du consumer ou, en dernier recours, par le balayage
+      // horaire. La jeter laissait le dossier périmé jusqu'à une heure.
+      await deps.gate.deferRequest(request, now);
+      deps.logger.log('debug', 'recompute deferred, inside the debounce window', {
         versionId: request.versionId,
         reason: request.reason,
         lastQueuedAt,
@@ -263,6 +302,9 @@ export async function enqueueDue(
     }
     await deps.queue.publish(request);
     await deps.gate.markQueued(request.versionId, now);
+    // La demande en attente pour cette version, s'il y en avait une, vient d'être
+    // publiée : sans cet effacement le balayage horaire la republierait indéfiniment.
+    await deps.gate.clearDeferred(request.versionId);
     deps.logger.log('debug', 'recompute queued', {
       versionId: request.versionId,
       reason: request.reason,

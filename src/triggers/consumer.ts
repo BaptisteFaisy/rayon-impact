@@ -22,6 +22,8 @@ import type {
   RecomputeRequest,
   RecomputeResult,
 } from '../ports';
+import { runTrailingPass } from './trailing';
+import type { TrailingDeps } from './trailing';
 
 /**
  * Exact signature of `recomputeRelease` in src/engine/pipeline.ts (written in
@@ -43,6 +45,12 @@ export interface ConsumerDeps {
    * the app (SPEC §12), hence `null` by default.
    */
   viewerAccountId?: string | null;
+  /**
+   * Passe finale des demandes retenues par la fenêtre de regroupement
+   * (SPEC §12 : « regroupé, jamais jeté »). Sans elle, un événement arrivé
+   * pendant la fenêtre attendrait le balayage horaire.
+   */
+  trailing: TrailingDeps;
 }
 
 function toRequest(
@@ -58,6 +66,26 @@ function toRequest(
 }
 
 /**
+ * La passe finale ne doit jamais faire perdre le résultat du recalcul principal :
+ * un échec est journalisé en `warn`, la demande reportée reste en place (elle
+ * n'est effacée qu'après un recalcul réussi) et le balayage horaire la rejoue.
+ */
+async function trailingQuietly(
+  deps: ConsumerDeps,
+  message: RecomputeMessage,
+  collectStartedAt: string,
+): Promise<void> {
+  try {
+    await runTrailingPass(deps, deps.trailing, message, collectStartedAt);
+  } catch (error) {
+    deps.logger.log('warn', 'recompute trailing failed', {
+      versionId: message.versionId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+}
+
+/**
  * Consumes one message: runs the pipeline, logs duration and verdict, and lets
  * an error bubble up so Forge retries it (R3 §3, retries up to 24 h).
  */
@@ -66,6 +94,7 @@ export async function onMessage(
   deps: ConsumerDeps,
 ): Promise<RecomputeResult> {
   const request = toRequest(message, deps);
+  const collectStartedAt = deps.pipeline.clock.now();
   deps.logger.log('info', 'recompute started', {
     versionId: request.versionId,
     reason: request.reason,
@@ -89,6 +118,7 @@ export async function onMessage(
       narrativeFromModel: result.narrativeFromModel,
       durationMs: result.durationMs,
     });
+    await trailingQuietly(deps, message, collectStartedAt);
     return result;
   } catch (error) {
     deps.logger.log('error', 'recompute failed', {

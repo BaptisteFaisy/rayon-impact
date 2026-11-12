@@ -46,6 +46,7 @@ import type { JiraEventLike } from './triggers/events';
 import { onScheduled as runScheduled, scheduledMode } from './triggers/scheduled';
 import type { ScheduledPayload, ScheduledVersionSource } from './triggers/scheduled';
 import { onMessage as runConsumer } from './triggers/consumer';
+import { sleep } from './triggers/trailing';
 import type { RecomputeFn } from './triggers/consumer';
 import type {
   Clock,
@@ -458,5 +459,12 @@ export async function onMessage(event: unknown): Promise<unknown> {
     }
     return result;
   };
-  return runConsumer(message, { pipeline: deps, recompute, logger });
+  return runConsumer(message, {
+    pipeline: deps,
+    recompute,
+    logger,
+    // Passe finale (SPEC §12) : ce que la fenêtre de regroupement a retenu est
+    // rejoué dès la fin du recalcul, pas au balayage horaire.
+    trailing: { gate: createFailOpenSqlGate(sql(), logger), clock, logger, sleep },
+  });
 }

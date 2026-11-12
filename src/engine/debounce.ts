@@ -80,3 +80,62 @@ export function coalesceRequests(
   }
   return [...byVersion.values()];
 }
+
+/* ------------------------------------------------- trailing pass (SPEC §12) */
+
+/** A recompute request held back by the window, as the gate stores it. */
+export interface DeferredRequest {
+  reason: RecomputeMessage['reason'];
+  requestedAt: string;
+}
+
+/**
+ * What the trailing pass must do once a recompute of the version has finished:
+ * `none` (nothing deferred), `clear` (the deferral predates the collection that
+ * just ended, so it is already accounted for) or `run` (recompute again, after
+ * `waitMs` so the "one per minute" rule still holds).
+ */
+export type TrailingAction = 'none' | 'clear' | 'run';
+
+export interface TrailingDecision {
+  action: TrailingAction;
+  waitMs: number;
+}
+
+/**
+ * "Regroupé" never means "jeté" (SPEC §12, §16): a change that arrived while a
+ * recompute was collecting must still be seen. `collectStartedAt` is the instant
+ * the finished recompute started reading Jira — a deferral at or before it is
+ * stale and only needs clearing.
+ *
+ * Unreadable timestamps fail open (`run`, no wait), exactly like
+ * `shouldRecompute`: a bad row must never freeze a dossier. A timestamp in the
+ * future (clock skew) bounds the wait to the window.
+ */
+export function trailingPass(
+  lastQueuedAt: string | null,
+  deferred: DeferredRequest | null,
+  collectStartedAt: string,
+  now: string,
+  minIntervalSeconds: number = MIN_RECOMPUTE_INTERVAL_SECONDS,
+): TrailingDecision {
+  if (deferred === null) {
+    return { action: 'none', waitMs: 0 };
+  }
+  const deferredMs = Date.parse(deferred.requestedAt);
+  if (Number.isNaN(deferredMs)) {
+    return { action: 'run', waitMs: 0 };
+  }
+  const collectMs = Date.parse(collectStartedAt);
+  if (!Number.isNaN(collectMs) && deferredMs <= collectMs) {
+    return { action: 'clear', waitMs: 0 };
+  }
+  const windowMs = minIntervalSeconds * 1000;
+  const lastMs = lastQueuedAt === null ? Number.NaN : Date.parse(lastQueuedAt);
+  const nowMs = Date.parse(now);
+  if (Number.isNaN(lastMs) || Number.isNaN(nowMs)) {
+    return { action: 'run', waitMs: 0 };
+  }
+  const waitMs = Math.max(0, Math.min(lastMs + windowMs - nowMs, windowMs));
+  return { action: 'run', waitMs };
+}

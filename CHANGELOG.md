@@ -23,6 +23,20 @@ Operations (runners, queue, conflict agents, deployment) are described in
 
 ## [Unreleased]
 
+### Merged to `main`, waiting for the next deploy
+
+- Fixed: a Jira event falling inside the 60 s recompute window was **dropped**
+  instead of deferred, so a change made right after another one waited for the
+  hourly sweep — a dossier stale for up to one hour. Seen in production on
+  2026-11-12 (`recompute skipped, inside the debounce window`, 12 s after a
+  recompute, then nothing) and measured by the acceptance harness, where
+  SPEC §17.6 (automatic recompute under 2 minutes) could not pass. The request
+  is now held back in the new `recalc_deferred` table (migration
+  `v004_create_recalc_deferred`, coalesced by `coalesceRequests`), replayed by a
+  bounded trailing pass of the consumer (`src/triggers/trailing.ts`: 3 passes,
+  480 s budget, waiting for the end of the window), with the hourly sweep as the
+  safety net. 37 new tests, 580 green in total.
+
 ### Still to do before the Codegeist 2026 submission (22 December, 21:00 Paris)
 
 - Submission video — the shot-by-shot script is written
