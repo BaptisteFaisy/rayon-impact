@@ -29,6 +29,14 @@ KEY_RE = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b")
 R6_JUDGE_SECONDS = 120
 R6_POLL_SECONDS = 150
 
+#: Fenêtre de regroupement des recalculs (SPEC §12, `MIN_RECOMPUTE_INTERVAL_SECONDS`
+#: dans src/engine/debounce.ts) : un PUT qui tombe dedans est ignoré par l'app.
+DEBOUNCE_SECONDS = 60
+
+#: Attente d'un snapshot après un PUT : la fenêtre, plus l'acheminement de
+#: l'événement et le recalcul lui-même (mesurés à 2-5 s et 7-11 s en production).
+REPUTE_AFTER_SECONDS = DEBOUNCE_SECONDS + 35
+
 
 class CaseResult:
     """Verdict d'un cas : OK, ÉCHEC (raison) ou SAUTÉ (raison)."""
@@ -93,9 +101,30 @@ def wait_snapshot(ctx, previous, timeout=None, description="recalcul"):
 
 
 def trigger_recompute(ctx, previous, description="recalcul sur PUT version"):
-    """Le vrai événement Jira qui déclenche le recalcul (docs/OPS.md §6)."""
-    ctx.jira.touch_version(ctx.version_id, ctx.version_name)
-    return wait_snapshot(ctx, previous, description=description)
+    """Le vrai événement Jira qui déclenche le recalcul (docs/OPS.md §6).
+
+    L'app regroupe les recalculs : au plus un par minute et par version
+    (SPEC §12, `MIN_RECOMPUTE_INTERVAL_SECONDS` de src/engine/debounce.ts). Un
+    PUT qui tombe dans cette fenêtre ne produit donc aucun snapshot, et
+    attendre ne servirait à rien — deux cas enchaînés en moins d'une minute
+    perdaient le second (R6 : « précondition : toujours faux après 300 s »).
+    On re-PUT une fois la fenêtre passée, jusqu'au timeout du cas.
+    """
+    echeance = time.monotonic() + ctx.timeout
+    tentatives = 0
+    while True:
+        tentatives += 1
+        ctx.jira.touch_version(ctx.version_id, ctx.version_name)
+        restant = int(echeance - time.monotonic())
+        attente = max(1, min(REPUTE_AFTER_SECONDS, restant))
+        try:
+            return wait_snapshot(ctx, previous, timeout=attente, description=description)
+        except HarnessError:
+            if time.monotonic() >= echeance:
+                raise HarnessError(
+                    f"{description} : toujours faux après {ctx.timeout} s "
+                    f"({tentatives} PUT, fenêtre de regroupement {DEBOUNCE_SECONDS} s)."
+                )
 
 
 def comp01_citing(dossier, issue_key):
