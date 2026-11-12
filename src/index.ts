@@ -305,14 +305,8 @@ for (const key of ACTION_KEYS) {
   });
 }
 
-/**
- * Le résolveur sait quel projet est visé ; le contexte de la vue, lui, ne le
- * porte pas toujours. Constaté en production le 2026-11-12 : l'écran de
- * réglages et la page projet partaient avec un `projectId` vide, et le
- * résolveur refusait (`Screen payload needs a "projectId" string`) — le module
- * restait vide côté Jira. On complète donc la charge utile depuis le contexte
- * du résolveur, qui, lui, connaît le projet.
- */
+// Le contexte de la vue ne porte pas toujours le projet : le résolveur, lui,
+// le connaît — il complète donc `projectId` (constaté en production).
 function withProjectId(payload: ForgePayload, context: ForgeContext): ForgePayload {
   if (typeof payload.projectId === 'string' && payload.projectId.length > 0) {
     return payload;
@@ -329,9 +323,7 @@ for (const [key, screen] of Object.entries(SCREENS)) {
     try {
       return await screen(withProjectId(request.payload ?? {}, request.context), deps);
     } catch (error) {
-      // Un écran qui échoue ne doit pas laisser le module vide côté Jira : on
-      // journalise ce que le module a reçu (la clé du projet change selon les
-      // modules) et on répond un refus, que l'écran sait afficher.
+      // Un écran qui échoue répond un refus, journalisé, plutôt qu'un module vide.
       deps.logger.log('warn', 'ecran en erreur', {
         key,
         payload: Object.keys(request.payload ?? {}),
