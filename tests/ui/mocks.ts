@@ -1,4 +1,5 @@
 import { vi } from 'vitest';
+import * as forgeReactPrimitives from './forge-react-mock';
 import { buildDemoDataset } from './screenData';
 import type { DemoDataset } from './screenData';
 
@@ -104,7 +105,13 @@ export const ForgeReconciler = {
   },
 };
 
+/**
+ * Les primitives de la plateforme (`Box`, `Text`, `Button`…) sont rendues par
+ * du HTML réel : les tests inspectent le markup (rôles, libellés, ancres
+ * sémantiques), pas des noms de composants.
+ */
 export const forgeReactMock = {
+  ...forgeReactPrimitives,
   default: ForgeReconciler,
   ForgeReconciler,
   useProductContext,

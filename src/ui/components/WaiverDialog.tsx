@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { invoke } from '@forge/bridge';
-import Button from '@atlaskit/button';
-import SectionMessage from '@atlaskit/section-message';
 import { WaiverFields } from './WaiverFields';
 import type { Locale, Signal } from '../../types';
+import { Box, Button, Heading, SectionMessage, Text } from '../kit';
 
 /**
  * Waiver dialog: reason is mandatory, expiration delay is explicit (RI-07).
@@ -41,11 +40,11 @@ export function WaiverDialog({ signal, locale, onDone, onCancel }: WaiverDialogP
   }
 
   return (
-    <div style={panelStyle}>
-      <h4>{locale === 'fr' ? 'Accorder une dérogation' : 'Grant a waiver'}</h4>
-      <p style={{ color: '#6B778C' }}>
+    <Box>
+      <Heading as="h4">{locale === 'fr' ? 'Accorder une dérogation' : 'Grant a waiver'}</Heading>
+      <Text>
         {signal.code} — {signal.subjectId}
-      </p>
+      </Text>
       {error ? <SectionMessage appearance="error">{error}</SectionMessage> : null}
       <WaiverFields
         locale={locale}
@@ -54,21 +53,16 @@ export function WaiverDialog({ signal, locale, onDone, onCancel }: WaiverDialogP
         onReason={setReason}
         onHours={setHours}
       />
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+      <Box>
         <Button appearance="primary" onClick={submit} isDisabled={busy}>
           {locale === 'fr' ? 'Accorder' : 'Grant'}
         </Button>
         <Button appearance="subtle" onClick={onCancel} isDisabled={busy}>
           {locale === 'fr' ? 'Annuler' : 'Cancel'}
         </Button>
-      </div>
-    </div>
+      </Box>
+    </Box>
   );
 }
 
-const panelStyle = {
-  border: '1px solid #DFE1E6',
-  padding: 16,
-  borderRadius: 4,
-  margin: '8px 12px',
-} as const;
+

@@ -1,11 +1,9 @@
 import { useState } from 'react';
 import { invoke } from '@forge/bridge';
-import Button from '@atlaskit/button';
-import Lozenge from '@atlaskit/lozenge';
-import SectionMessage from '@atlaskit/section-message';
 import { t } from '../../i18n/index';
 import type { SimulateWithoutOutput } from '../../actions/types';
 import type { Locale } from '../../types';
+import { Box, Button, List, ListItem, Lozenge, SectionMessage, Text } from '../kit';
 
 /**
  * Simulation panel (RI-13): "what if this ticket left the release?"
@@ -52,7 +50,7 @@ export function SimulationPanel({ versionId, issueKeys, locale }: SimulationPane
   }
 
   return (
-    <div style={{ margin: '8px 0', padding: 12, border: '1px solid #DFE1E6', borderRadius: 4 }}>
+    <Box>
       <SimulationButtons
         keys={issueKeys}
         minimal={result?.minimalRemoval?.issueKeys ?? []}
@@ -62,10 +60,10 @@ export function SimulationPanel({ versionId, issueKeys, locale }: SimulationPane
       />
       {error ? <SectionMessage appearance="error">{error}</SectionMessage> : null}
       {result ? <SimulationResult result={result} locale={locale} /> : null}
-      <p style={{ color: '#6B778C', fontSize: '0.85em' }}>
+      <Text>
         {t({ key: 'simulation.disclaimer' }, locale)}
-      </p>
-    </div>
+      </Text>
+    </Box>
   );
 }
 
@@ -83,7 +81,7 @@ function SimulationButtons({
   onSimulate: (keys: string[]) => void;
 }) {
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+    <Box>
       <Button appearance="default" isDisabled={busy || keys.length === 0} onClick={() => onSimulate(keys)}>
         {t({ key: 'simulation.run', params: { keys: keys.join(', ') } }, locale)}
       </Button>
@@ -92,7 +90,7 @@ function SimulationButtons({
           {t({ key: 'simulation.runMinimal', params: { count: minimal.length } }, locale)}
         </Button>
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -105,22 +103,22 @@ function SimulationResult({
 }) {
   const minimal = result.minimalRemoval;
   return (
-    <div style={{ marginTop: 8 }}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <Box>
+      <Box>
         <Lozenge appearance={APPEARANCE[result.verdictBefore]}>
           {t({ key: `verdict.${result.verdictBefore}` }, locale)}
         </Lozenge>
-        <span>→</span>
+        <Text>→</Text>
         <Lozenge appearance={APPEARANCE[result.verdict]} isBold>
           {t({ key: `verdict.${result.verdict}` }, locale)}
         </Lozenge>
-        <span>
+        <Text>
           {t(
             { key: 'simulation.dropped', params: { count: result.droppedSignalCount } },
             locale,
           )}
-        </span>
-      </div>
+        </Text>
+      </Box>
       {result.unknownIssueKeys.length > 0 ? (
         <SectionMessage appearance="warning">
           {t(
@@ -131,15 +129,15 @@ function SimulationResult({
       ) : null}
       {minimal ? <MinimalRemovalLine minimal={minimal} locale={locale} /> : null}
       {result.conditions.length > 0 ? (
-        <ul>
+        <List type="unordered">
           {result.conditions.map((condition) => (
-            <li key={`${condition.signalCode}-${condition.subjectId}`}>
+            <ListItem key={`${condition.signalCode}-${condition.subjectId}`}>
               {condition.signalCode} — {t(condition.text, locale)}
-            </li>
+            </ListItem>
           ))}
-        </ul>
+        </List>
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -152,11 +150,11 @@ function MinimalRemovalLine({
 }) {
   const key = minimal.provenMinimal ? 'simulation.minimal' : 'simulation.minimalUnproven';
   return (
-    <p>
+    <Text>
       {t({ key, params: { keys: minimal.issueKeys.join(', '), count: minimal.issueKeys.length } }, locale)}{' '}
-      <span style={{ color: '#6B778C' }}>
+      <Text>
         ({t({ key: 'simulation.simulations', params: { count: minimal.simulationsRun } }, locale)})
-      </span>
-    </p>
+      </Text>
+    </Text>
   );
 }

@@ -1,6 +1,6 @@
-import Lozenge from '@atlaskit/lozenge';
 import { t } from '../../i18n/index';
 import type { Locale, SnapshotDiff } from '../../types';
+import { Box, Lozenge, Text, Strong } from '../kit';
 
 /**
  * "Since the last dossier" banner (RI-14): what appeared, what was cleared,
@@ -19,21 +19,21 @@ const APPEARANCE = {
 export function DiffBanner({ diff, locale }: { diff: SnapshotDiff | null; locale: Locale }) {
   if (!diff) {
     return (
-      <p style={{ color: '#6B778C', padding: '0 12px' }}>
+      <Text>
         {t({ key: 'diff.first' }, locale)}
-      </p>
+      </Text>
     );
   }
   if (isEmpty(diff)) {
     return (
-      <p style={{ color: '#6B778C', padding: '0 12px' }}>
+      <Text>
         {t({ key: 'diff.none' }, locale)}
-      </p>
+      </Text>
     );
   }
   return (
-    <div style={{ padding: '4px 12px' }}>
-      <strong>{t({ key: 'diff.title' }, locale)}</strong>
+    <Box>
+      <Strong>{t({ key: 'diff.title' }, locale)}</Strong>
       {diff.verdictChange ? <VerdictChange diff={diff} locale={locale} /> : null}
       <SignalMoveList
         label={t({ key: 'diff.added' }, locale)}
@@ -49,7 +49,7 @@ export function DiffBanner({ diff, locale }: { diff: SnapshotDiff | null; locale
           (change) => `${change.signalId}: ${change.from} → ${change.to}`,
         )}
       />
-    </div>
+    </Box>
   );
 }
 
@@ -66,21 +66,21 @@ function VerdictChange({ diff, locale }: { diff: SnapshotDiff; locale: Locale })
   const change = diff.verdictChange;
   if (!change) return null;
   return (
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0' }}>
+    <Box>
       <Lozenge appearance={APPEARANCE[change.from]}>{t({ key: `verdict.${change.from}` }, locale)}</Lozenge>
-      <span>→</span>
+      <Text>→</Text>
       <Lozenge appearance={APPEARANCE[change.to]} isBold>
         {t({ key: `verdict.${change.to}` }, locale)}
       </Lozenge>
-    </div>
+    </Box>
   );
 }
 
 function SignalMoveList({ label, codes }: { label: string; codes: string[] }) {
   if (codes.length === 0) return null;
   return (
-    <div>
+    <Box>
       {label} ({codes.length}) : {codes.join(', ')}
-    </div>
+    </Box>
   );
 }

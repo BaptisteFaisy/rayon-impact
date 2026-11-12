@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { invoke } from '@forge/bridge';
-import Button from '@atlaskit/button';
-import SectionMessage from '@atlaskit/section-message';
 import { useLocale, useProject, useScreen } from './hooks';
 import { SeverityTable } from './components/SeverityTable';
 import { ListField } from './components/ListField';
 import type { Locale, Policy } from '../types';
+import { Box, Button, Checkbox, Heading, Label, SectionMessage } from './kit';
 
 /**
  * Project settings: severity per signal (RI-11), watched JSM projects, who may
@@ -27,7 +26,7 @@ export function SettingsPage() {
 
   const policy = draft ?? screen.data ?? emptyPolicy(project.id ?? '');
 
-  if (screen.loading) return <p role="status">…</p>;
+  if (screen.loading) return <Box role="status">…</Box>;
 
   async function save() {
     setError(null);
@@ -42,10 +41,10 @@ export function SettingsPage() {
   }
 
   return (
-    <div style={{ padding: 12 }}>
+    <Box>
       <StatusMessages error={error} saved={saved} locale={locale} />
       <SettingsView policy={policy} locale={locale} onChange={setDraft} onSave={save} />
-    </div>
+    </Box>
   );
 }
 
@@ -65,14 +64,14 @@ export function SettingsView({
   onSave: () => void;
 }) {
   return (
-    <div>
-      <h3>{locale === 'fr' ? 'Réglages du rayon d’impact' : 'Release impact settings'}</h3>
+    <Box>
+      <Heading as="h3">{locale === 'fr' ? 'Réglages du rayon d’impact' : 'Release impact settings'}</Heading>
       <SeverityTable policy={policy} locale={locale} onChange={onChange} />
       <PolicyFields policy={policy} locale={locale} onChange={onChange} />
       <Button appearance="primary" onClick={onSave}>
         {locale === 'fr' ? 'Enregistrer' : 'Save'}
       </Button>
-    </div>
+    </Box>
   );
 }
 
@@ -86,14 +85,14 @@ function StatusMessages({
   locale: Locale;
 }) {
   return (
-    <div>
+    <Box>
       {error ? <SectionMessage appearance="error">{error}</SectionMessage> : null}
       {saved ? (
         <SectionMessage appearance="success">
           {locale === 'fr' ? 'Réglages enregistrés.' : 'Settings saved.'}
         </SectionMessage>
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -108,28 +107,32 @@ function PolicyFields({
   onChange: (next: Policy) => void;
 }) {
   return (
-    <div>
+    <Box>
       <ListField
+        id="jsm-project-keys"
         label={locale === 'fr' ? 'Projets JSM surveillés (clés)' : 'Watched JSM projects (keys)'}
         values={policy.jsmProjectKeys}
         onChange={(values) => onChange({ ...policy, jsmProjectKeys: values })}
       />
       <ListField
+        id="waiver-approvers"
         label={locale === 'fr' ? 'Qui peut déroger (accountId)' : 'Who may waive (accountId)'}
         values={policy.waiverApprovers}
         onChange={(values) => onChange({ ...policy, waiverApprovers: values })}
       />
-      <label style={{ display: 'block', margin: '8px 0' }}>
-        <input
-          type="checkbox"
-          checked={policy.observationMode}
-          onChange={(event) => onChange({ ...policy, observationMode: event.target.checked })}
+      <Box>
+        <Checkbox
+          id="observation-mode"
+          isChecked={policy.observationMode}
+          onChange={(event) => onChange({ ...policy, observationMode: Boolean(event.target.checked) })}
         />
-        {locale === 'fr'
-          ? ' Mode observation (aucun avis sur les tickets)'
-          : ' Observation mode (no verdict shown on tickets)'}
-      </label>
-    </div>
+        <Label labelFor="observation-mode">
+          {locale === 'fr'
+            ? ' Mode observation (aucun avis sur les tickets)'
+            : ' Observation mode (no verdict shown on tickets)'}
+        </Label>
+      </Box>
+    </Box>
   );
 }
 
