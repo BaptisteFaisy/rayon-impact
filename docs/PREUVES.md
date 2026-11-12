@@ -1,0 +1,100 @@
+# Preuves — chaque étape, son élément de preuve
+
+Principe : **aucune étape n'est annoncée sans preuve datée**. Les preuves sont
+produites par un outil, pas narratives à la main :
+
+```bash
+python3 scripts/preuves/capture.py                # preuve de l'état live
+python3 scripts/preuves/capture.py --avec-recette # + le compte rendu du harnais §17
+```
+
+La capture écrit `docs/preuves/dernier.md` (lisible) et `docs/preuves/dernier.json`
+(machine), sans jamais écrire de secret : le jeton n'est pas copié, et l'URL du
+webtrigger n'est conservée que sous son hôte.
+
+Ce que la capture contrôle, à chaque fois :
+
+| contrôle | ce qu'il prouve |
+| --- | --- |
+| déploiements | que `production`, `development` et `staging` ont bien été déployés, et quand |
+| surface applicative | le nombre de modules, de fonctions et de scopes réellement publiés (9 actions, 4 écrans, 1 agent, 1 MCP, 1 consumer, 3 déclencheurs, 2 déclencheurs planifiés) |
+| webtrigger | que l'app est **installée** : une app déployée sans installation n'a pas de jeton configuré, donc `/health` ne répondrait pas |
+| dossier frais | que le dossier lu vient de la table de production, avec son horodatage de calcul |
+| verdict cohérent | que l'avis et la confiance sont dans les énumérations du SPEC |
+| synthèse vérifiée | que **chaque clé de ticket citée par la synthèse existe dans les signaux** — le LLM n'invente rien |
+| couverture honnête | l'état de chaque source (jira, jsm, confluence, development, service-map, teamwork-graph) : une source absente est nommée, jamais silence |
+| décisions et dérogations | ce que le chemin d'écriture a réellement laissé en base |
+| chaîne de déclenchement | dans les journaux de production : événement → mis en file → démarré → terminé (et reporté / passe finale) |
+| historique | les derniers dossiers calculés, avec leur nombre de signaux |
+
+## Les étapes de la recette SPEC §17
+
+Compte rendu du dernier passage (2026-11-12, production, site de démo
+`one-atlas-cndz.atlassian.net`) :
+
+```
+R1 §17.1 [OK]            avis no-go, COMP-01 cite PAY-19
+R2 §17.2 [SAUTÉ]         EXP-01 exige un service rattaché au ticket (écran de réglages)
+R3 §17.3 [SAUTÉ]         accorder une dérogation passe par l'action request-waiver (navigateur)
+R4 §17.4 [SAUTÉ]         le masquage dépend de l'identité du lecteur (navigateur)
+R5 §17.5 [OK]            confiance low, couverture code 0/16, 6 note(s) de couverture l'expliquent
+R6 §17.6 [OK]            recalculé sans action manuelle en 53 s (< 2 min), COMP-01 levé pour PAY-20
+R7 §17.7 [SAUTÉ]         interroger l'agent Rovo (navigateur)
+R8 §17.8 [OK]            50 dossier(s) vérifié(s), aucune clé hors signaux
+```
+
+| étape | preuve | statut |
+| --- | --- | --- |
+| R1 — avis no-go, COMP-01 cite le ticket | dossier live `computedAt`, `counts.blocking`, narrative ; capture « synthèse vérifiée » | **prouvé** |
+| R2 — service rattaché au ticket | `service-map=ok` mais 2 services sur 16 : à faire dans l'écran de réglages, puis re-capturer | **à faire à la main** |
+| R3 — dérogation 24 h, avis « go sous conditions » | ligne « décisions et dérogations » de la capture (0 aujourd'hui) | **à faire à la main** |
+| R4 — masquage selon l'identité du lecteur | tests de masquage + dossier lu sans identité (`sanitizeDossierForViewer`) ; la preuve demande un second compte | **à faire à la main** |
+| R5 — confiance basse et couverture expliquée | capture « couverture honnête » : `development=unavailable`, `codeRatio=0` | **prouvé** |
+| R6 — recalcul automatique en moins de 2 min | harnais : **53 s**, sans action manuelle | **prouvé** |
+| R7 — l'agent Rovo répond sur la release | dialogue Rovo du site (capture impossible sans navigateur) | **à faire à la main** |
+| R8 — corpus de dossiers, aucune clé hors signaux | harnais : 50 dossiers vérifiés, 0 clé hors signaux ; capture « synthèse vérifiée » | **prouvé** |
+| chaîne de production | journaux : `recompute queued` → `started` → `finished`, et `recompute deferred` / `recompute trailing` quand la fenêtre de regroupement joue | **prouvé** |
+| déploiement et installation | `forge environments list` + `/health` du webtrigger | **prouvé** |
+
+## Les quatre étapes qui demandent un navigateur
+
+Elles passent par l'écran ou par l'agent, donc par une session humaine. La
+procédure ci-dessous est **courte et vérifiable** : après chaque clic, la
+capture mécanique montre l'effet, sans interprétation.
+
+1. **R2 — rattacher un service à un ticket.**
+   Jira → projet `PAY` → page de l'application → **réglages** → carte
+   composant → service : associer le composant de `PAY-2` au service connu, puis
+   **enregistrer**. *Preuve ensuite :* `service-map=ok` et `issuesWithService`
+   qui monte dans la capture ; sans association, `EXP-01` reste muet.
+2. **R3 — accorder une dérogation.**
+   Jira → ticket bloquant `PAY-19` → panneau contextuel de l'application →
+   **Dérogation** → motif obligatoire → durée 24 h → **Accorder**. *Preuve
+   ensuite :* la ligne « décisions et dérogations » de la capture affiche
+   `dérogations=1`, et l'avis du dossier passe en « go sous conditions ».
+3. **R4 — vérifier le masquage.**
+   Ouvrir la page projet avec **un compte qui n'a pas les droits** sur un
+   signal. *Preuve ensuite :* la couverture annonce « 1 élément restreint » au
+   lieu d'afficher le signal ; le même chemin est couvert par les tests de
+   `sanitizeDossierForViewer`.
+4. **R7 — interroger l'agent Rovo.**
+   Dans le chat Rovo du site : « Peut-on livrer la 2.4 ? » *Preuve ensuite :* la
+   réponse cite les signaux du dossier (PAY-19, PAY-6, MOBL-58) et l'avis
+   « no-go » — jamais de ticket que le dossier ne contienne.
+
+Tant que ces quatre étapes ne sont pas jouées, le harnais les saute **avec la
+raison exacte** : il ne masque rien, il dit pourquoi.
+
+## Rejouer la preuve
+
+```bash
+python3 scripts/preuves/capture.py                  # ~40 s : lecture seule + un PUT idempotent
+python3 scripts/preuves/capture.py --lecture-seule  # ~20 s : aucun événement
+python3 scripts/preuves/capture.py --avec-recette   # + harnais §17 complet (~4 min)
+```
+
+Le script déclenche le recalcul par le vrai événement Jira (`PUT
+/rest/api/3/version/{id}`, idempotent — même nom de version, aucune donnée
+changée, cf. [docs/OPS.md](OPS.md) §6) : c'est ainsi que les journaux de
+production contiennent la chaîne à prouver. Aucun secret n'est écrit dans les
+preuves, et le jeton Atlassian n'est jamais lu par ce script.
