@@ -115,6 +115,19 @@ function useDossierData(versionId: string, projectId: string) {
   return { dossier, graph, teams, diff };
 }
 
+/** The loading, error and empty states of a dossier, or null when ready. */
+function dossierBlank(
+  dossier: { loading: boolean; error: string | null; data: unknown },
+  locale: Locale,
+) {
+  if (dossier.loading) return <Box role="status">…</Box>;
+  if (dossier.error) return <Text>{dossier.error}</Text>;
+  if (!dossier.data) {
+    return <Text>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</Text>;
+  }
+  return null;
+}
+
 function Dossier({
   versionId,
   projectId,
@@ -129,11 +142,10 @@ function Dossier({
   const [deciding, setDeciding] = useState(false);
   const [tab, setTab] = useState(0);
 
-  if (dossier.loading) return <Box role="status">…</Box>;
-  if (dossier.error) return <Text>{dossier.error}</Text>;
-  if (!dossier.data) return <Text>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</Text>;
+  const blank = dossierBlank(dossier, locale);
+  if (blank) return blank;
 
-  const { snapshot } = dossier.data;
+  const { snapshot } = dossier.data!;
   return (
     <Box>
       <DossierHeader snapshot={snapshot} diff={diff.data} locale={locale} />
