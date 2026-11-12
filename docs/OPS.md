@@ -207,3 +207,31 @@ Une politique enregistrée via l'écran de réglages a toujours priorité. Effet
 mesuré sur le site de démo : couverture services **0/16 → 2/16** et
 `service-map` passé de `empty` à `ok`.
 
+### Mesure RI-02 : 200 tickets en moins de 60 s
+
+Exigence RI-02 du SPEC : « Calculer un dossier complet pour une version de 200
+tickets en moins de 60 s, en arrière-plan ». Mesurée sur le site de démo le
+12/11/2026 avec la version `2.5-perf` (200 tickets créés par
+`POST /rest/api/3/issue/bulk`, 4 lots de 50) :
+
+```
+recompute finished {
+  versionId: '10102', versionName: '2.5-perf', reason: 'event',
+  verdict: 'no-go', confidence: 'low',
+  signals: 200, blocking: 200, major: 0,
+  coverageCode: '0/200', coverageService: '0/200',
+  narrativeFromModel: true, durationMs: 44789
+}
+```
+
+**44,8 s pour 200 tickets** : l'exigence est tenue, mais la marge est faible
+(75 % du budget). La collecte est séquentielle par ticket (liens distants,
+changelog) : au-delà de ~250 tickets le plafond des 60 s serait dépassé. Trois
+pistes déjà identifiées — paralléliser la collecte par lots, mettre en cache les
+liens distants et le changelog entre deux recalculs rapprochés, et n'aller
+chercher le changelog que pour les signaux qui en ont besoin (COMP-04, QUAL-03).
+
+Piège observé : déclencher le recalcul **immédiatement** après une création en
+masque ne remonte que 12 tickets sur 200 (retard d'indexation de la recherche
+Jira). Attendre quelques minutes, ou vérifier le compte par JQL avant de mesurer.
+
