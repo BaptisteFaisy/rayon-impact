@@ -1,0 +1,149 @@
+{
+ "captureLe": "2026-11-12T15:39:36Z",
+ "environnement": "production",
+ "webtriggerHote": "https://6194cab9-1b93-43db-a498-40bed2510f5e.webtrigger.atlassian.app/",
+ "deployements": {
+  "environnements": {
+   "production": {
+    "dernierDeploiement": "2026-11-12T13:23:39.765Z",
+    "identifiant": "0fb41072-bf2b-442d-9679-4be1282d6feb"
+   },
+   "staging": {
+    "dernierDeploiement": "2026-11-11T10:21:23.250Z",
+    "identifiant": "f711dc08-e1df-4750-90ac-9c58608492ca"
+   },
+   "development": {
+    "dernierDeploiement": "2026-11-12T13:22:13.177Z",
+    "identifiant": "f0b20005-9676-46e3-95fd-218c9907ec96"
+   }
+  },
+  "surfaceApplicative": {
+   "versionMajeure": 3,
+   "deployeeLe": "2026-11-11T21:01:00.226Z",
+   "fonctions": "15",
+   "scopes": "17",
+   "modules": {
+    "jira:projectPage": 1,
+    "jira:issueContext": 1,
+    "jira:projectSettingsPage": 1,
+    "jira:dashboardGadget": 1,
+    "trigger": 3,
+    "scheduledTrigger": 2,
+    "consumer": 1,
+    "sql": 1,
+    "llm": 1,
+    "action": 9,
+    "webtrigger": 1,
+    "rovo:agent": 1,
+    "rovo:mcp": 1
+   }
+  }
+ },
+ "declencheur": {
+  "projet": "PAY",
+  "version": "2.4",
+  "versionId": "10100",
+  "evenement": "PUT /rest/api/3/version/{id} (idempotent)"
+ },
+ "health": {
+  "http": 200,
+  "ok": true,
+  "tokenConfigured": true
+ },
+ "preuves": [
+  {
+   "id": "dossier_frais",
+   "libelle": "Dossier calculé par la production",
+   "statut": "OK",
+   "detail": "computedAt=2026-11-12T15:39:59.000Z version=2.4 signaux=4"
+  },
+  {
+   "id": "verdict_coherent",
+   "libelle": "Avis et confiance dans l'énumération du SPEC",
+   "statut": "OK",
+   "detail": "avis=no-go confiance=low comptes={\"blocking\": 3, \"major\": 1, \"minor\": 0, \"info\": 0}"
+  },
+  {
+   "id": "synthese_verifiee",
+   "libelle": "Aucune clé de ticket inventée par la synthèse",
+   "statut": "OK",
+   "detail": "7 clé(s) citée(s), 0 hors signaux"
+  },
+  {
+   "id": "couverture_honnete",
+   "libelle": "État de chaque source de couverture",
+   "statut": "OK",
+   "detail": "jsm=partial, confluence=empty, teamwork-graph=unavailable, jira=ok, development=unavailable, service-map=ok"
+  },
+  {
+   "id": "decisions_derogations",
+   "libelle": "Décisions et dérogations réellement enregistrées",
+   "statut": "INFO",
+   "detail": "décisions=0 dérogations=0 bilan 72 h=non"
+  },
+  {
+   "id": "chaine_declenchement",
+   "libelle": "Chaîne de déclenchement dans les journaux de production",
+   "statut": "OK",
+   "detail": "3 ligne(s) de chaîne dans les 40 dernières lignes de journal"
+  }
+ ],
+ "historique": {
+  "dossiers": 8,
+  "derniers": [
+   {
+    "computedAt": "2026-11-12T15:39:59.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   },
+   {
+    "computedAt": "2026-11-12T15:36:09.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   },
+   {
+    "computedAt": "2026-11-12T15:34:43.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   },
+   {
+    "computedAt": "2026-11-12T15:19:09.000Z",
+    "version": "2.5-perf",
+    "verdict": "no-go",
+    "signaux": 200
+   },
+   {
+    "computedAt": "2026-11-12T15:19:09.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   },
+   {
+    "computedAt": "2026-11-12T14:19:07.000Z",
+    "version": "2.5-perf",
+    "verdict": "no-go",
+    "signaux": 200
+   },
+   {
+    "computedAt": "2026-11-12T14:19:07.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   },
+   {
+    "computedAt": "2026-11-12T13:27:54.000Z",
+    "version": "2.4",
+    "verdict": "no-go",
+    "signaux": 4
+   }
+  ]
+ },
+ "journal": [
+  "INFO    2026-11-12T15:39:57.218Z ead82368-2aa1-4048-b251-5a989ac4a790 [rayon-impact] recompute queued { versionId: '10100', reason: 'event' }",
+  "INFO    2026-11-12T15:39:57.682Z 932024a4-49ca-4009-946b-4d89af19222c [rayon-impact] recompute started {",
+  "INFO    2026-11-12T15:40:04.864Z 932024a4-49ca-4009-946b-4d89af19222c [rayon-impact] recompute finished {"
+ ]
+}
