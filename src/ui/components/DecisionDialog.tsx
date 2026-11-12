@@ -105,16 +105,7 @@ export function DecisionDialog({
 
   return (
     <div style={panelStyle}>
-      <h4>{t({ key: 'decision.dialog.title' }, locale)}</h4>
-      <p style={{ color: '#6B778C' }}>
-        {t(
-          {
-            key: 'decision.dialog.currentVerdict',
-            params: { verdict: t({ key: `verdict.${verdict}` }, locale) },
-          },
-          locale,
-        )}
-      </p>
+      <DecisionHeading verdict={verdict} locale={locale} />
       {error ? <SectionMessage appearance="error">{error}</SectionMessage> : null}
       <DecisionFields
         locale={locale}
@@ -131,6 +122,24 @@ export function DecisionDialog({
           {t({ key: 'decision.dialog.cancel' }, locale)}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** Title and reminder of the verdict being decided on. */
+function DecisionHeading({ verdict, locale }: { verdict: Verdict; locale: Locale }) {
+  return (
+    <div>
+      <h4>{t({ key: 'decision.dialog.title' }, locale)}</h4>
+      <p style={{ color: '#6B778C' }}>
+        {t(
+          {
+            key: 'decision.dialog.currentVerdict',
+            params: { verdict: t({ key: `verdict.${verdict}` }, locale) },
+          },
+          locale,
+        )}
+      </p>
     </div>
   );
 }

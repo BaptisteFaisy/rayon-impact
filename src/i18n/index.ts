@@ -174,6 +174,7 @@ export const DICTIONARY_EN: Record<string, string> = {
   'decision.option.ship': 'We ship',
   'decision.option.hold': 'We hold',
   'decision.option.delay': 'We delay',
+  'decision.openButton': 'Record the decision',
 
 
   'simulation.noSolution': 'No subset of tickets removes all blocking signals (check version-level freezes).',
@@ -352,6 +353,19 @@ export const DICTIONARY_FR: Record<string, string> = {
   'diff.added': 'Nouveaux signaux',
   'diff.cleared': 'Signaux levés',
   'diff.severity': 'Gravité modifiée',
+  // Décision humaine (RI-08) — clés demandées par DecisionDialog
+  'decision.dialog.title': 'Enregistrer la décision',
+  'decision.dialog.currentVerdict': 'Avis actuel : {verdict}',
+  'decision.dialog.field': 'Décision',
+  'decision.dialog.note': 'Note (facultative)',
+  'decision.dialog.noteCounter': '{count}/{max} caractères',
+  'decision.dialog.noteTooLong': 'La note doit rester sous {max} caractères.',
+  'decision.dialog.submit': 'Enregistrer la décision',
+  'decision.dialog.cancel': 'Annuler',
+  'decision.option.ship': 'On livre',
+  'decision.option.hold': 'On retient',
+  'decision.option.delay': 'On reporte',
+  'decision.openButton': 'Enregistrer la décision',
   // ui
   'signals.none.active': 'Aucun signal actif.',
   'waivers.expires': 'expire {at}',

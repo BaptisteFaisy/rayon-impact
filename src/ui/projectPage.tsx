@@ -7,6 +7,7 @@ import { VerdictBanner } from './components/VerdictBanner';
 import { CoverageMeter } from './components/CoverageMeter';
 import { DiffBanner } from './components/DiffBanner';
 import { WaiverDialog } from './components/WaiverDialog';
+import { DecisionDialog } from './components/DecisionDialog';
 import { GraphView } from './components/GraphView';
 import { SignalsTab } from './tabs/SignalsTab';
 import { TeamsTab } from './tabs/TeamsTab';
@@ -19,6 +20,7 @@ import type {
   ReleaseDossier,
   Signal,
   SnapshotDiff,
+  Verdict,
 } from '../types';
 
 /**
@@ -105,6 +107,15 @@ export function VersionPicker({
 }
 
 /** Loads the saved dossier and the impacted teams, then renders the tabs. */
+/** The four reads of the project screen, grouped so `Dossier` stays short. */
+function useDossierData(versionId: string, projectId: string) {
+  const dossier = useScreen<ReleaseDossier | null>('screen.projectPage', { versionId });
+  const graph = useScreen<ImpactGraph | null>('screen.impactGraph', { versionId });
+  const teams = useImpactedTeams(versionId);
+  const diff = useScreen<SnapshotDiff | null>('screen.projectDiff', { projectId, versionId });
+  return { dossier, graph, teams, diff };
+}
+
 function Dossier({
   versionId,
   projectId,
@@ -114,11 +125,9 @@ function Dossier({
   projectId: string;
   locale: Locale;
 }) {
-  const dossier = useScreen<ReleaseDossier | null>('screen.projectPage', { versionId });
-  const graph = useScreen<ImpactGraph | null>('screen.impactGraph', { versionId });
-  const teams = useImpactedTeams(versionId);
-  const diff = useScreen<SnapshotDiff | null>('screen.projectDiff', { projectId, versionId });
+  const { dossier, graph, teams, diff } = useDossierData(versionId, projectId);
   const [waiving, setWaiving] = useState<Signal | null>(null);
+  const [deciding, setDeciding] = useState(false);
   const [tab, setTab] = useState(0);
 
   if (dossier.loading) return <p role="status">…</p>;
@@ -128,6 +137,11 @@ function Dossier({
   return (
     <div>
       <DossierHeader snapshot={snapshot} diff={diff.data} locale={locale} />
+      <div style={{ padding: '0 12px 8px' }}>
+        <button type="button" onClick={() => setDeciding(true)}>
+          {t({ key: 'decision.openButton' }, locale)}
+        </button>
+      </div>
       <DossierTabs
         tab={tab}
         onTab={setTab}
@@ -139,12 +153,47 @@ function Dossier({
         onWaive={setWaiving}
         versionId={versionId}
       />
+      <DossierDialogs
+        waiving={waiving}
+        deciding={deciding}
+        versionId={versionId}
+        verdict={snapshot.verdict}
+        locale={locale}
+        onWaiveDone={() => setWaiving(null)}
+        onDecisionDone={() => setDeciding(false)}
+      />
+    </div>
+  );
+}
+
+/** Waiver and decision modals, kept out of `Dossier` (50-line function rule). */
+function DossierDialogs(props: {
+  waiving: Signal | null;
+  deciding: boolean;
+  versionId: string;
+  verdict: Verdict;
+  locale: Locale;
+  onWaiveDone: () => void;
+  onDecisionDone: () => void;
+}) {
+  const { waiving, deciding, versionId, verdict, locale, onWaiveDone, onDecisionDone } = props;
+  return (
+    <div>
       {waiving ? (
         <WaiverDialog
           signal={waiving}
           locale={locale}
-          onCancel={() => setWaiving(null)}
-          onDone={() => setWaiving(null)}
+          onCancel={onWaiveDone}
+          onDone={onWaiveDone}
+        />
+      ) : null}
+      {deciding ? (
+        <DecisionDialog
+          versionId={versionId}
+          verdict={verdict}
+          locale={locale}
+          onCancel={onDecisionDone}
+          onDone={onDecisionDone}
         />
       ) : null}
     </div>

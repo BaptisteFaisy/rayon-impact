@@ -11,6 +11,21 @@ import type { Locale, Policy, Severity, SignalCode } from '../../types';
 
 const SEVERITIES: Severity[] = ['blocking', 'major', 'minor', 'info'];
 
+/** Policy with one signal's severity overridden (RI-11). */
+function withSeverity(policy: Policy, code: SignalCode, next: Severity): Policy {
+  return { ...policy, severityOverrides: { ...policy.severityOverrides, [code]: next } };
+}
+
+/** Policy with one signal enabled or disabled. */
+function withEnabled(policy: Policy, code: SignalCode, enabled: boolean): Policy {
+  return {
+    ...policy,
+    disabledSignals: enabled
+      ? policy.disabledSignals.filter((item) => item !== code)
+      : [...policy.disabledSignals, code],
+  };
+}
+
 const cell = {
   border: '1px solid #DFE1E6',
   padding: '4px 8px',
@@ -47,21 +62,8 @@ function SeverityRow({ code, policy, locale, onChange }: SeverityTableProps & { 
   const severity = policy.severityOverrides[code] ?? definition.defaultSeverity;
   const enabled = !policy.disabledSignals.includes(code);
 
-  function setSeverity(next: Severity) {
-    onChange({
-      ...policy,
-      severityOverrides: { ...policy.severityOverrides, [code]: next },
-    });
-  }
-
-  function setEnabled(next: boolean) {
-    onChange({
-      ...policy,
-      disabledSignals: next
-        ? policy.disabledSignals.filter((item) => item !== code)
-        : [...policy.disabledSignals, code],
-    });
-  }
+  const setSeverity = (next: Severity) => onChange(withSeverity(policy, code, next));
+  const setEnabled = (next: boolean) => onChange(withEnabled(policy, code, next));
 
   return (
     <tr>
