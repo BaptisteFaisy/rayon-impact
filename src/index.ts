@@ -25,7 +25,13 @@ import { createConfluenceClient } from './collect/confluence';
 import { createTeamworkGraphRunner } from './collect/graph';
 import { createReleaseCollector } from './collect/collector';
 import { createLlmNarrativeWriter } from './collect/llm';
-import { listOpenVersions, listReleasedVersions, listVersionsForIssue } from './db/queries';
+import {
+  listOpenVersions,
+  listReleasedVersions,
+  listVersions,
+  listVersionsForIssue,
+} from './db/queries';
+import { DEFAULT_RETENTION, pruneSnapshots } from './db/retention';
 import { createForgeSqlClient } from './db/sql-client';
 import type { SqlClient } from './db/sql-client';
 import { ACTION_KEYS, runAction } from './actions/registry';
@@ -37,7 +43,7 @@ import { diffSnapshots } from './engine/diff';
 import { onJiraEvent } from './triggers/events';
 import { createFailOpenSqlGate } from './db/gate';
 import type { JiraEventLike } from './triggers/events';
-import { onScheduled as runScheduled } from './triggers/scheduled';
+import { onScheduled as runScheduled, scheduledMode } from './triggers/scheduled';
 import type { ScheduledPayload, ScheduledVersionSource } from './triggers/scheduled';
 import { onMessage as runConsumer } from './triggers/consumer';
 import type { RecomputeFn } from './triggers/consumer';
@@ -363,9 +369,26 @@ export async function onEvent(event: JiraEventLike): Promise<RecomputeMessage[]>
   return onJiraEvent(event, { queue: jobQueue, gate: createFailOpenSqlGate(sql(), logger), clock, logger });
 }
 
+/**
+ * Purges the expired dossiers of every tracked project (SPEC §15 keeps
+ * decisions, waivers and outcomes; `selectSnapshotsToPrune` protects them).
+ */
+async function pruneAllProjects(): Promise<void> {
+  const rows = await listVersions(sql());
+  const projectIds = [...new Set(rows.map((row) => row.project_id).filter(Boolean))];
+  for (const projectId of projectIds) {
+    const report = await pruneSnapshots(sql(), projectId, DEFAULT_RETENTION, clock.now());
+    logger.log('info', 'rétention des dossiers', { projectId, ...report });
+  }
+}
+
 /** `scheduledTrigger` modules: hourly refresh and the 72 h outcome check. */
 export async function onScheduled(payload: ScheduledPayload): Promise<RecomputeMessage[]> {
   await ensureSchema();
+  // Rétention : une fois par jour, sur tous les projets suivis (docs/RETENTION.md).
+  if (scheduledMode(payload) !== 'hourly') {
+    await pruneAllProjects();
+  }
   const store: ReleaseStore = createStore();
   const versions: ScheduledVersionSource = {
     async listOpenVersions() {

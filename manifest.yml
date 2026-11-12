@@ -144,6 +144,8 @@ modules:
       handler: index.dispatch
     - key: fn-close-waiver
       handler: index.dispatch
+    - key: fn-record-decision
+      handler: index.dispatch
     # Webtrigger de lecture seule : le harnais de recette lit les dossiers sans
     # navigateur (scripts/acceptance). Authentification par jeton porté par la
     # variable d'environnement RI_WEBTRIGGER_TOKEN.
@@ -286,6 +288,28 @@ modules:
           required: true
           description: "Why the waiver is closed."
 
+    - key: record-decision
+      name: Record release decision
+      function: fn-record-decision
+      actionVerb: CREATE
+      description: "Records the human decision (ship, hold or delay) on a release version, with the verdict of the saved dossier at that moment and an optional note. Identity comes from the Forge context. Decisions are kept forever, never deleted."
+      inputs:
+        versionId:
+          title: "Version id"
+          type: string
+          required: true
+          description: "Identifier of the release version."
+        decision:
+          title: "Decision"
+          type: string
+          required: true
+          description: "One of: ship, hold or delay."
+        note:
+          title: "Note"
+          type: string
+          required: false
+          description: "Optional note recorded with the decision, up to 500 characters."
+
   # --------------------------------------------------- webtrigger de lecture
   webtrigger:
     - key: dossier-read
@@ -316,6 +340,7 @@ modules:
         - get-release-outcome
         - request-waiver
         - close-waiver
+        - record-decision
       followUpPrompt: Suggest the next useful question about this release.
 
   # -------------------------------------------------------------- MCP (R2)
@@ -331,6 +356,7 @@ modules:
         - get-release-outcome
         - request-waiver
         - close-waiver
+        - record-decision
 
 # ------------------------------------------------------------------- ressources
 resources:

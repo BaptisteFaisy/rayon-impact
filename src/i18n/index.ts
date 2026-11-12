@@ -162,6 +162,19 @@ export const DICTIONARY_EN: Record<string, string> = {
   'diff.added': 'New signals',
   'diff.cleared': 'Cleared signals',
   'diff.severity': 'Severity changed',
+  // Décision humaine (RI-08) — clés demandées par DecisionDialog
+  'decision.dialog.title': 'Record the decision',
+  'decision.dialog.currentVerdict': 'Current verdict: {verdict}',
+  'decision.dialog.field': 'Decision',
+  'decision.dialog.note': 'Note (optional)',
+  'decision.dialog.noteCounter': '{count}/{max} characters',
+  'decision.dialog.noteTooLong': 'The note must stay under {max} characters.',
+  'decision.dialog.submit': 'Record the decision',
+  'decision.dialog.cancel': 'Cancel',
+  'decision.option.ship': 'We ship',
+  'decision.option.hold': 'We hold',
+  'decision.option.delay': 'We delay',
+
 
   'simulation.noSolution': 'No subset of tickets removes all blocking signals (check version-level freezes).',
 
@@ -319,6 +332,19 @@ export const DICTIONARY_FR: Record<string, string> = {
   'diff.added': 'Nouveaux signaux',
   'diff.cleared': 'Signaux levés',
   'diff.severity': 'Gravité modifiée',
+  // Décision humaine (RI-08) — clés demandées par DecisionDialog
+  'decision.dialog.title': 'Enregistrer la décision',
+  'decision.dialog.currentVerdict': 'Avis actuel : {verdict}',
+  'decision.dialog.field': 'Décision',
+  'decision.dialog.note': 'Note (facultative)',
+  'decision.dialog.noteCounter': '{count}/{max} caractères',
+  'decision.dialog.noteTooLong': 'La note doit rester sous {max} caractères.',
+  'decision.dialog.submit': 'Enregistrer la décision',
+  'decision.dialog.cancel': 'Annuler',
+  'decision.option.ship': 'On livre',
+  'decision.option.hold': 'On retient',
+  'decision.option.delay': 'On reporte',
+
 };
 
 const DICTIONARIES: Record<Locale, Record<string, string>> = {
