@@ -55,6 +55,7 @@ export function ProjectPage() {
   }, [rows, versionId]);
 
   if (versions.loading) return <Box role="status">…</Box>;
+  if (versions.error) return <Text>{versions.error}</Text>;
   if (rows.length === 0) return <EmptyProject locale={locale} />;
 
   return (
@@ -129,6 +130,7 @@ function Dossier({
   const [tab, setTab] = useState(0);
 
   if (dossier.loading) return <Box role="status">…</Box>;
+  if (dossier.error) return <Text>{dossier.error}</Text>;
   if (!dossier.data) return <Text>{locale === 'fr' ? 'Aucun dossier enregistré.' : 'No saved dossier.'}</Text>;
 
   const { snapshot } = dossier.data;
