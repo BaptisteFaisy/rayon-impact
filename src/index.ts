@@ -305,10 +305,44 @@ for (const key of ACTION_KEYS) {
   });
 }
 
+/**
+ * Le résolveur sait quel projet est visé ; le contexte de la vue, lui, ne le
+ * porte pas toujours. Constaté en production le 2026-11-12 : l'écran de
+ * réglages et la page projet partaient avec un `projectId` vide, et le
+ * résolveur refusait (`Screen payload needs a "projectId" string`) — le module
+ * restait vide côté Jira. On complète donc la charge utile depuis le contexte
+ * du résolveur, qui, lui, connaît le projet.
+ */
+function withProjectId(payload: ForgePayload, context: ForgeContext): ForgePayload {
+  if (typeof payload.projectId === 'string' && payload.projectId.length > 0) {
+    return payload;
+  }
+  const extension = (context as unknown as { extension?: { project?: { id?: string } } })
+    .extension;
+  const id = extension?.project?.id;
+  return typeof id === 'string' && id.length > 0 ? { ...payload, projectId: id } : payload;
+}
+
 for (const [key, screen] of Object.entries(SCREENS)) {
-  resolver.define(key, async (request: { payload?: ForgePayload; context: ForgeContext }) =>
-    screen(request.payload ?? {}, await createDeps(request.context)),
-  );
+  resolver.define(key, async (request: { payload?: ForgePayload; context: ForgeContext }) => {
+    const deps = await createDeps(request.context);
+    try {
+      return await screen(withProjectId(request.payload ?? {}, request.context), deps);
+    } catch (error) {
+      // Un écran qui échoue ne doit pas laisser le module vide côté Jira : on
+      // journalise ce que le module a reçu (la clé du projet change selon les
+      // modules) et on répond un refus, que l'écran sait afficher.
+      deps.logger.log('warn', 'ecran en erreur', {
+        key,
+        payload: Object.keys(request.payload ?? {}),
+        extension: JSON.stringify(
+          (request.context as unknown as { extension?: Record<string, unknown> }).extension ?? {},
+        ),
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return refusal(error);
+    }
+  });
 }
 
 /** `@forge/resolver` definitions — `handler` of every UI module. */
