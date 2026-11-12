@@ -168,11 +168,11 @@ describe('SimulationPanel', () => {
 });
 
 describe('GraphView', () => {
-  it('renders the svg (role=img) and its translated list equivalent', () => {
+  it('renders the graph as a labelled image and its translated list equivalent', () => {
     const html = renderToStaticMarkup(<GraphView graph={demoData.graph} locale="en" />);
-    expect(html).toContain('role="img"');
-    expect(html).toContain('aria-label="impact graph"');
-    expect(html).toContain('<circle');
+    expect(html).toContain('<img');
+    expect(html).toContain('alt="Impact graph"');
+    expect(html).toContain('data:image/svg+xml');
     expect(html).toContain('Tickets');
     expect(html).toContain('Services');
     expect(html).toContain('<ul');
@@ -215,7 +215,7 @@ describe('SeverityTable + ListField', () => {
     const html = renderToStaticMarkup(
       <SeverityTable policy={demoData.policy} locale="en" onChange={() => {}} />,
     );
-    expect(html).toContain('<table');
+    expect(html).toContain('<select');
     for (const code of listSignalCodes()) {
       expect(html).toContain(`Severity for ${code}`);
       expect(html).toContain(`Enable ${code}`);

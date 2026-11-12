@@ -1,10 +1,12 @@
 import { getSignalDefinition, listSignalCodes } from '../../signals/registry';
 import { t } from '../../i18n/index';
+import { Box, Checkbox, Select, Text } from '../kit';
 import type { Locale, Policy, Severity, SignalCode } from '../../types';
 
 /**
  * Severity table of the settings screen: one row per signal, with its effective
- * severity and its on/off switch (RI-11).
+ * severity and its on/off switch (RI-11). En UI Kit 2, un tableau est une
+ * colonne de `Box` : pas de `<table>`.
  *
  * Rule: files < 500 lines, functions < 50 lines.
  */
@@ -26,12 +28,6 @@ function withEnabled(policy: Policy, code: SignalCode, enabled: boolean): Policy
   };
 }
 
-const cell = {
-  border: '1px solid #DFE1E6',
-  padding: '4px 8px',
-  textAlign: 'left',
-} as const;
-
 export interface SeverityTableProps {
   policy: Policy;
   locale: Locale;
@@ -40,57 +36,41 @@ export interface SeverityTableProps {
 
 export function SeverityTable({ policy, locale, onChange }: SeverityTableProps) {
   return (
-    <table style={{ borderCollapse: 'collapse', marginBottom: 12 }}>
-      <thead>
-        <tr>
-          <th style={cell}>{locale === 'fr' ? 'Signal' : 'Signal'}</th>
-          <th style={cell}>{locale === 'fr' ? 'Gravité' : 'Severity'}</th>
-          <th style={cell}>{locale === 'fr' ? 'Activé' : 'Enabled'}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {listSignalCodes().map((code) => (
-          <SeverityRow key={code} code={code} policy={policy} locale={locale} onChange={onChange} />
-        ))}
-      </tbody>
-    </table>
+    <Box>
+      {listSignalCodes().map((code) => (
+        <SeverityRow key={code} code={code} policy={policy} locale={locale} onChange={onChange} />
+      ))}
+    </Box>
   );
 }
 
 function SeverityRow({ code, policy, locale, onChange }: SeverityTableProps & { code: SignalCode }) {
   const definition = getSignalDefinition(code);
   const severity = policy.severityOverrides[code] ?? definition.defaultSeverity;
-  const enabled = !policy.disabledSignals.includes(code);
-
+  const enabled = !(policy.disabledSignals ?? []).includes(code);
+  const options = SEVERITIES.map((value) => ({
+    label: t({ key: `severity.${value}` }, locale),
+    value,
+  }));
   const setSeverity = (next: Severity) => onChange(withSeverity(policy, code, next));
   const setEnabled = (next: boolean) => onChange(withEnabled(policy, code, next));
 
   return (
-    <tr>
-      <td style={cell}>
+    <Box>
+      <Text>
         {code} — {t(definition.title, locale)}
-      </td>
-      <td style={cell}>
-        <select
-          aria-label={t({ key: 'settings.severityFor', params: { code } }, locale)}
-          value={severity}
-          onChange={(event) => setSeverity(event.target.value as Severity)}
-        >
-          {SEVERITIES.map((value) => (
-            <option key={value} value={value}>
-              {t({ key: `severity.${value}` }, locale)}
-            </option>
-          ))}
-        </select>
-      </td>
-      <td style={cell}>
-        <input
-          type="checkbox"
-          aria-label={t({ key: 'settings.enabledFor', params: { code } }, locale)}
-          checked={enabled}
-          onChange={(event) => setEnabled(event.target.checked)}
-        />
-      </td>
-    </tr>
+      </Text>
+      <Select
+        aria-label={t({ key: 'settings.severityFor', params: { code } }, locale)}
+        options={options}
+        value={options.find((option) => option.value === severity) ?? null}
+        onChange={(option) => option && setSeverity(option.value as Severity)}
+      />
+      <Checkbox
+        aria-label={t({ key: 'settings.enabledFor', params: { code } }, locale)}
+        isChecked={enabled}
+        onChange={(event) => setEnabled(Boolean(event.target.checked))}
+      />
+    </Box>
   );
 }

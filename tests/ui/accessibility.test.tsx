@@ -94,10 +94,12 @@ describe('graphics are labeled', () => {
     }
   });
 
-  it('the impact graph svg announces itself as an image', () => {
+  it('the impact graph announces itself as an image', () => {
+    // UI Kit 2 n'a pas de primitive SVG : le graphe est une image, et la liste
+    // équivalente reste l'équivalent accessible.
     const html = renderToStaticMarkup(projectPageLoaded(demoData, 'en', 1));
-    expect(html).toContain('<svg');
-    expect(html).toContain('role="img"');
+    expect(html).toContain('<img');
+    expect(html).toContain('alt="Impact graph"');
     expect(findUnlabeledGraphics(html)).toEqual([]);
   });
 });

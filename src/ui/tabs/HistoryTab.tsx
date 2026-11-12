@@ -1,5 +1,6 @@
 import { t } from '../../i18n/index';
 import type { Decision, Locale, Outcome } from '../../types';
+import { Box, List, ListItem, Text } from '../kit';
 
 /**
  * History tab: the decisions taken, with the verdict that was on screen at the
@@ -16,14 +17,14 @@ export interface HistoryTabProps {
 
 export function HistoryTab({ decisions, outcome, locale }: HistoryTabProps) {
   return (
-    <div>
-      <ul>
+    <Box>
+      <List type="unordered">
         {decisions.map((decision) => (
-          <li key={decision.id}>{decisionLine(decision, locale)}</li>
+          <ListItem key={decision.id}>{decisionLine(decision, locale)}</ListItem>
         ))}
-      </ul>
+      </List>
       <OutcomeLine outcome={outcome} locale={locale} />
-    </div>
+    </Box>
   );
 }
 
@@ -48,15 +49,15 @@ function decisionLine(decision: Decision, locale: Locale): string {
 function OutcomeLine({ outcome, locale }: { outcome: Outcome | null; locale: Locale }) {
   if (!outcome) {
     return (
-      <p style={{ color: '#6B778C' }}>
+      <Text>
         {locale === 'fr'
           ? 'Bilan à 72 h : pas encore disponible.'
           : '72 h outcome: not available yet.'}
-      </p>
+      </Text>
     );
   }
   return (
-    <p>
+    <Text>
       {t(
         {
           key: 'history.outcome',
@@ -65,6 +66,6 @@ function OutcomeLine({ outcome, locale }: { outcome: Outcome | null; locale: Loc
         locale,
       )}
       {outcome.rollback ? ` · ${t({ key: 'history.rollback' }, locale)}` : ''}
-    </p>
+    </Text>
   );
 }

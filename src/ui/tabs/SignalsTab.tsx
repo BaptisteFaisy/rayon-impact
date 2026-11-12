@@ -2,6 +2,7 @@ import { SignalList } from '../components/SignalList';
 import { SimulationPanel } from '../components/SimulationPanel';
 import { blockingIssueKeys } from '../issueKeys';
 import type { Locale, Signal } from '../../types';
+import { Box, Button } from '../kit';
 
 /**
  * Signals tab: the list grouped by severity, plus a waiver button on every
@@ -31,21 +32,20 @@ export function SignalsTab({
   );
   const held = blockingIssueKeys(signals);
   return (
-    <div>
+    <Box>
       <SignalList signals={signals} locale={locale} />
       {waivable.map((signal) => (
-        <button
+        <Button
           key={signal.id}
           type="button"
           onClick={() => onWaive(waiving?.id === signal.id ? null : signal)}
-          style={{ marginRight: 8 }}
         >
           {locale === 'fr' ? 'Déroger' : 'Waive'} {signal.code}
-        </button>
+        </Button>
       ))}
       {held.length > 0 ? (
         <SimulationPanel versionId={versionId} issueKeys={held} locale={locale} />
       ) : null}
-    </div>
+    </Box>
   );
 }

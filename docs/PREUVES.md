@@ -98,3 +98,37 @@ Le script déclenche le recalcul par le vrai événement Jira (`PUT
 changée, cf. [docs/OPS.md](OPS.md) §6) : c'est ainsi que les journaux de
 production contiennent la chaîne à prouver. Aucun secret n'est écrit dans les
 preuves, et le jeton Atlassian n'est jamais lu par ce script.
+
+## Les écrans ne se rendaient pas — preuve, cause, correction (2026-11-12)
+
+**Ce que le navigateur a débusqué, et que rien d'autre ne voyait.** Le harnais ne teste que
+l'API et le moteur ; les tests de rendu utilisent `react-dom/server`, qui accepte n'importe
+quel HTML. Aucun contrôle automatique n'ouvrait donc les écrans. Le premier contrôle dans un
+vrai navigateur a trouvé, sur les quatre écrans de production :
+
+```
+Error rendering app - encountered unknown component p.
+```
+
+**La cause.** En UI Kit 2, le document rendu ne contient que des composants que la plateforme
+dessine (`Box`, `Text`, `Heading`, `Button`…). Un élément HTML brut (`<div>`, `<p>`, `<span>`)
+est rejeté par le moteur de rendu d'Atlassian. Les écrans en contenaient **107**.
+
+**La correction.** `src/ui/kit.tsx` est une façade sur `@forge/react` — le même motif que
+`laddition/src/ui/kit.tsx` sur ce site de démonstration. Les 19 fichiers d'écran n'importent
+plus que cette façade, et les paquets Atlaskit utilisés sont déclarés en dépendances : ils
+n'étaient que transitifs, donc inlinés dans le bundle au lieu d'être fournis par la plateforme.
+Le graphe d'impact, qui était un `<svg>` inline, part désormais en image (data-URI) et garde
+sa liste équivalente (SPEC §11).
+
+**Les captures sont dans `docs/preuves/captures/`** :
+
+| capture | ce qu'elle montre |
+| --- | --- |
+| `2026-11-12-panneau-ticket-RAYON-IMPACT.png` | le panneau « Rayon d'impact » du ticket PAY-19, déplié : *This ticket holds back 2.4: COMP-01 — Ticket PAY-19 is still In Progress (in-progress).* |
+| `2026-11-12-reglages-attente-resolveur.png` | **écart ouvert** : l'écran de réglages reste sur le squelette de chargement — le résolveur `screen.projectSettings` ne répond pas sur le module `jira:projectSettingsPage`. Les trois autres écrans répondent. |
+
+**Recette navigateur reproductible** (fenêtre sans focus, sans toucher à la session de
+l'utilisateur) : copier le profil Chrome de la machine, en extraire les cookies de session **en
+lecture seule** via CDP, puis piloter un navigateur isolé sur l'affichage virtuel `:99` (Xvfb).
+Aucun secret n'est écrit dans le dépôt.

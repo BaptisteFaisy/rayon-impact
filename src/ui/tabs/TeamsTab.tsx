@@ -1,4 +1,5 @@
 import type { ImpactedTeam, Locale } from '../../types';
+import { List, ListItem, Text, Strong } from '../kit';
 
 /**
  * Impacted teams tab: who is touched, through which services, and with which
@@ -10,32 +11,32 @@ import type { ImpactedTeam, Locale } from '../../types';
 export function TeamsTab({ teams, locale }: { teams: ImpactedTeam[]; locale: Locale }) {
   if (teams.length === 0) {
     return (
-      <p style={{ color: '#6B778C' }}>
+      <Text>
         {locale === 'fr' ? 'Aucune équipe identifiée.' : 'No team identified.'}
-      </p>
+      </Text>
     );
   }
   return (
-    <ul>
+    <List type="unordered">
       {teams.map((team) => (
         <TeamRow key={team.teamId} team={team} />
       ))}
-    </ul>
+    </List>
   );
 }
 
 function TeamRow({ team }: { team: ImpactedTeam }) {
   return (
-    <li>
-      <strong>{team.teamName}</strong> —{' '}
+    <ListItem>
+      <Strong>{team.teamName}</Strong> —{' '}
       {team.services.map((service) => service.serviceName).join(', ')} ({team.via})
-      <ul>
+      <List type="unordered">
         {team.issues.map((issue) => (
-          <li key={issue.key}>
+          <ListItem key={issue.key}>
             {issue.key} — {issue.summary}
-          </li>
+          </ListItem>
         ))}
-      </ul>
-    </li>
+      </List>
+    </ListItem>
   );
 }

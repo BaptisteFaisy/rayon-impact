@@ -24,6 +24,12 @@
     "esbuild@0.21.5": true
   },
   "dependencies": {
+    "@atlaskit/button": "^20.5.3",
+    "@atlaskit/lozenge": "^11.14.0",
+    "@atlaskit/section-message": "^7.0.0",
+    "@atlaskit/select": "^18.10.6",
+    "@atlaskit/tabs": "^17.3.0",
+    "@atlaskit/textarea": "^7.1.0",
     "@forge/api": "^8.5.0",
     "@forge/events": "^2.0.0",
     "@forge/llm": "^1.0.0",
