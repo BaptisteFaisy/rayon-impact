@@ -42,7 +42,17 @@ Operations (runners, queue, conflict agents, deployment) are described in
   still inside the window — was held back with nobody left to replay it, so
   acceptance case §17.6 still failed. The consumer now stays awake until the
   window closes (`trailingPass` answers `wait`), bounded by
-  `MAX_TRAILING_WAITS = 2` and a 300 s budget. 2 new tests, 582 green in total.
+  `MAX_TRAILING_WAITS` and a 300 s budget. 2 new tests, 582 green in total.
+- Fixed (third pass on the same defect, found by re-running the acceptance
+  harness against production): `MAX_TRAILING_WAITS = 2` stopped the invocation
+  right before the second replay. The real pattern is
+  wait → recompute → wait → recompute — the harness PUTs its precondition, then
+  transitions the ticket, and each event lands inside the window of the previous
+  recompute — so the second deferred request fell back to the hourly sweep and
+  §17.6 still failed. Bound raised to 4 waits; the 300 s budget stays the hard
+  limit. Production logs confirm the mechanism itself works
+  (`12:41:18 recompute deferred` → `12:41:55 recompute trailing, pass: 1`).
+  1 new test, 583 green in total.
 
 ### Still to do before the Codegeist 2026 submission (22 December, 21:00 Paris)
 

@@ -33,8 +33,14 @@ export const MAX_TRAILING_PASSES = 3;
 /**
  * Attentes de fermeture de fenêtre au plus par invocation. Une attente ne coûte
  * pas de recalcul, mais elle occupe l'invocation : elle est donc bornée aussi.
+ *
+ * Quatre et non deux : le motif réel observé en production est
+ * attente → recalcul → attente → recalcul (le harnais de recette §17.6 enchaîne
+ * un PUT de précondition puis une transition de ticket, chacun produisant son
+ * événement). Avec deux attentes, l'invocation rendait la main juste avant le
+ * second recalcul et la demande retombait sur le balayage horaire.
  */
-export const MAX_TRAILING_WAITS = 2;
+export const MAX_TRAILING_WAITS = 4;
 
 /**
  * Budget total d'une invocation, en ms. Le consumer Forge a `timeoutSeconds:

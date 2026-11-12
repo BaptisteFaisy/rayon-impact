@@ -198,6 +198,27 @@ describe('triggers/trailing — runTrailingPass', () => {
     await expect(gate.deferredRequest(message.versionId)).resolves.toBeNull();
   });
 
+  it('rejoue aussi une demande arrivée pendant une attente suivante (motif §17.6)', async () => {
+    const gate = createMemoryGate();
+    const { run, trailing, gate: shared, clock, requests } = setup({
+      gate,
+      onSleep: async () => {
+        // Un événement arrive pendant CHAQUE attente : le motif réel du harnais
+        // (PUT de précondition, puis transition du ticket) en produit deux.
+        const at = clock.now();
+        await shared.deferRequest({ ...message, requestedAt: at }, at);
+      },
+    });
+    await gate.markQueued(message.versionId, START);
+
+    const results = await runTrailingPass(run, trailing, message, COLLECT);
+
+    // Avec MAX_TRAILING_WAITS = 2, l'invocation s'arrêtait après le premier
+    // recalcul et le second événement attendait le balayage horaire.
+    expect(results).toHaveLength(MAX_TRAILING_PASSES);
+    expect(requests).toHaveLength(MAX_TRAILING_PASSES);
+  });
+
   it('borne le nombre de passes d’une rafale continue', async () => {
     const { run, trailing, gate, clock } = setup({
       recompute: async (_deps: PipelineDeps, _request: RecomputeRequest) => {
