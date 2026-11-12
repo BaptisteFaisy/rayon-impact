@@ -64,7 +64,10 @@ export function useLocale(): Locale {
 export function useProject(): { id?: string; key?: string } {
   const context = useProductContext();
   const extension = (context?.extension ?? {}) as Record<string, unknown>;
-  const project = (extension.project ?? {}) as Record<string, unknown>;
+  // Jira appelle désormais les projets « spaces » : selon le module, le
+  // contexte porte `project` ou `space` (l'écran de réglages ne recevait que
+  // `space`, et le résolveur ne recevait donc aucun projectId).
+  const project = (extension.project ?? extension.space ?? {}) as Record<string, unknown>;
   return {
     ...(typeof project.id === 'string' ? { id: project.id } : {}),
     ...(typeof project.key === 'string' ? { key: project.key } : {}),

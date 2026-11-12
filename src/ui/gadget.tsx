@@ -32,6 +32,7 @@ export function DashboardGadget() {
   });
 
   if (screen.loading) return <Box role="status">…</Box>;
+  if (screen.error) return <Text>{screen.error}</Text>;
   return <GadgetList rows={screen.data ?? []} locale={locale} />;
 }
 
