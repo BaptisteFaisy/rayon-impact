@@ -91,15 +91,39 @@ export interface DeferredRequest {
 
 /**
  * What the trailing pass must do once a recompute of the version has finished:
- * `none` (nothing deferred), `clear` (the deferral predates the collection that
- * just ended, so it is already accounted for) or `run` (recompute again, after
- * `waitMs` so the "one per minute" rule still holds).
+ * `none` (window closed, nothing held back), `wait` (nothing held back *yet*,
+ * but the window is still open), `clear` (the deferral predates the collection
+ * that just ended, so it is already accounted for) or `run` (recompute again,
+ * after `waitMs` so the "one per minute" rule still holds).
  */
-export type TrailingAction = 'none' | 'clear' | 'run';
+export type TrailingAction = 'none' | 'clear' | 'run' | 'wait';
 
 export interface TrailingDecision {
   action: TrailingAction;
   waitMs: number;
+}
+
+/**
+ * Milliseconds left before the window closes: 0 when it is closed, when no
+ * recompute was ever queued, or when a timestamp is unreadable (fail open — a
+ * bad row must never freeze a dossier, exactly like `shouldRecompute`). A
+ * timestamp in the future (clock skew) bounds the wait to the window.
+ */
+export function windowRemaining(
+  lastQueuedAt: string | null,
+  now: string,
+  minIntervalSeconds: number = MIN_RECOMPUTE_INTERVAL_SECONDS,
+): number {
+  if (lastQueuedAt === null) {
+    return 0;
+  }
+  const windowMs = minIntervalSeconds * 1000;
+  const lastMs = Date.parse(lastQueuedAt);
+  const nowMs = Date.parse(now);
+  if (Number.isNaN(lastMs) || Number.isNaN(nowMs)) {
+    return 0;
+  }
+  return Math.max(0, Math.min(lastMs + windowMs - nowMs, windowMs));
 }
 
 /**
@@ -108,9 +132,11 @@ export interface TrailingDecision {
  * the finished recompute started reading Jira — a deferral at or before it is
  * stale and only needs clearing.
  *
- * Unreadable timestamps fail open (`run`, no wait), exactly like
- * `shouldRecompute`: a bad row must never freeze a dossier. A timestamp in the
- * future (clock skew) bounds the wait to the window.
+ * With nothing held back yet the answer is `wait` while the window is open: an
+ * event can still arrive and be deferred, and an invocation that returns early
+ * would leave that request orphaned until the hourly sweep. Measured in
+ * production on 2026-11-12: the transition of acceptance case §17.6 landed 12 s
+ * after the recompute had finished, i.e. inside the window and after it.
  */
 export function trailingPass(
   lastQueuedAt: string | null,
@@ -119,8 +145,9 @@ export function trailingPass(
   now: string,
   minIntervalSeconds: number = MIN_RECOMPUTE_INTERVAL_SECONDS,
 ): TrailingDecision {
+  const waitMs = windowRemaining(lastQueuedAt, now, minIntervalSeconds);
   if (deferred === null) {
-    return { action: 'none', waitMs: 0 };
+    return waitMs > 0 ? { action: 'wait', waitMs } : { action: 'none', waitMs: 0 };
   }
   const deferredMs = Date.parse(deferred.requestedAt);
   if (Number.isNaN(deferredMs)) {
@@ -130,12 +157,5 @@ export function trailingPass(
   if (!Number.isNaN(collectMs) && deferredMs <= collectMs) {
     return { action: 'clear', waitMs: 0 };
   }
-  const windowMs = minIntervalSeconds * 1000;
-  const lastMs = lastQueuedAt === null ? Number.NaN : Date.parse(lastQueuedAt);
-  const nowMs = Date.parse(now);
-  if (Number.isNaN(lastMs) || Number.isNaN(nowMs)) {
-    return { action: 'run', waitMs: 0 };
-  }
-  const waitMs = Math.max(0, Math.min(lastMs + windowMs - nowMs, windowMs));
   return { action: 'run', waitMs };
 }

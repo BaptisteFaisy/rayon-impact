@@ -134,8 +134,17 @@ function deferredAt(requestedAt: string): { reason: RecomputeMessage['reason']; 
 }
 
 describe('engine/debounce — trailingPass', () => {
-  it('n’a rien à rejouer quand aucune demande n’est reportée', () => {
+  it('reste éveillé tant que la fenêtre est ouverte, même sans demande reportée', () => {
+    // Une demande peut encore arriver et être reportée : rendre la main
+    // maintenant l’orphelinerait jusqu’au balayage horaire.
     expect(trailingPass(QUEUED, null, COLLECT, '2026-11-12T10:00:10.000Z')).toEqual({
+      action: 'wait',
+      waitMs: 50_000,
+    });
+  });
+
+  it('n’a plus rien à faire une fois la fenêtre fermée', () => {
+    expect(trailingPass(QUEUED, null, COLLECT, '2026-11-12T10:01:30.000Z')).toEqual({
       action: 'none',
       waitMs: 0,
     });

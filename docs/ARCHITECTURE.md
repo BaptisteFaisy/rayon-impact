@@ -138,10 +138,12 @@ live waiver does), and does not invent timestamps (`ctx.now`).
    dead-letter queue, so the pipeline must be safe to replay: a snapshot is keyed
    by (version, computedAt) and the dossier read always takes the latest one.
    Right after a successful recompute it runs the TRAILING PASS
-   (src/triggers/trailing.ts): whatever the window held back for that version is
-   replayed, after the wait the one-per-minute rule requires. Bounded twice —
-   MAX_TRAILING_PASSES = 3 and a 480 s budget against the 900 s timeout — so an
-   invocation never runs away; what is left goes to the hourly sweep.
+   (src/triggers/trailing.ts) and stays awake until the window closes: whatever
+   the window held back — during the recompute or in the seconds after it — is
+   replayed, at the instant the one-per-minute rule allows. Bounded three ways:
+   MAX_TRAILING_PASSES = 3 recomputes, MAX_TRAILING_WAITS = 2 waits and a 300 s
+   budget against the 900 s timeout, so an invocation never runs away; what is
+   left goes to the hourly sweep.
                     │
                     v
 5. Pipeline (src/engine/pipeline.ts, not written yet) with the injected deps:

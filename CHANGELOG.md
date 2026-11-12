@@ -23,7 +23,7 @@ Operations (runners, queue, conflict agents, deployment) are described in
 
 ## [Unreleased]
 
-### Merged to `main`, waiting for the next deploy
+### Merged to `main` (deployed 2026-11-12: development 3.10.0, production 3.3.0)
 
 - Fixed: a Jira event falling inside the 60 s recompute window was **dropped**
   instead of deferred, so a change made right after another one waited for the
@@ -36,6 +36,13 @@ Operations (runners, queue, conflict agents, deployment) are described in
   bounded trailing pass of the consumer (`src/triggers/trailing.ts`: 3 passes,
   480 s budget, waiting for the end of the window), with the hourly sweep as the
   safety net. 37 new tests, 580 green in total.
+- Fixed (same day, before the deploy above could be measured by the harness):
+  the trailing pass only looked at requests deferred *while* a recompute was in
+  flight. An event arriving a few seconds **after** the recompute finished —
+  still inside the window — was held back with nobody left to replay it, so
+  acceptance case §17.6 still failed. The consumer now stays awake until the
+  window closes (`trailingPass` answers `wait`), bounded by
+  `MAX_TRAILING_WAITS = 2` and a 300 s budget. 2 new tests, 582 green in total.
 
 ### Still to do before the Codegeist 2026 submission (22 December, 21:00 Paris)
 
