@@ -34,9 +34,8 @@ interface SetupOptions {
   outcomes?: string[];
 }
 
-function setup(options: SetupOptions = {}) {
-  const published: RecomputeMessage[] = [];
-  const releasedQueries: string[] = [];
+/** Version source under test, with the counters the assertions read. */
+function versionSource(options: SetupOptions, releasedQueries: string[]) {
   let openQueries = 0;
   const versions: ScheduledVersionSource = {
     async listOpenVersions(): Promise<ScheduledVersion[]> {
@@ -48,6 +47,15 @@ function setup(options: SetupOptions = {}) {
       return options.released ?? [];
     },
   };
+  return { versions, openQueries: () => openQueries };
+}
+
+function setup(options: SetupOptions = {}) {
+  const published: RecomputeMessage[] = [];
+  const releasedQueries: string[] = [];
+  const source = versionSource(options, releasedQueries);
+  const versions = source.versions;
+  const openQueries = source.openQueries;
   const outcomes = new Set(options.outcomes ?? []);
   const waivers = new Map<string, Waiver[]>();
   const deps: ScheduledDeps = {
@@ -81,7 +89,7 @@ function setup(options: SetupOptions = {}) {
     published,
     releasedQueries,
     waivers,
-    openQueries: () => openQueries,
+    openQueries,
   };
 }
 

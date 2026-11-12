@@ -152,6 +152,11 @@ jobs:
           fi
           echo "aucun marqueur de conflit"
 
+      # Regles du projet : fichiers < 500 lignes, fonctions < 50 lignes.
+      # Garde automatisee : jusque-la le controle etait fait a la main.
+      - name: Tailles des fichiers et des fonctions
+        run: python3 scripts/check-limits.py -q
+
       # Les gardes de la CI se testent elles-memes : couche0 + agents
       # fireworks - stdlib, quelques secondes, aucun reseau.
       - name: Tests des gardes CI (couche0, fireworks)

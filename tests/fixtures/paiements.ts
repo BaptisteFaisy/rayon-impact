@@ -68,7 +68,8 @@ export const MOB_77 = issue('MOB-77', {
   ],
 });
 
-export function paiementsIssues() {
+/** The five tickets touching checkout-api or holding the release back. */
+export function serviceAndBlockingIssues() {
   return [
     issue('PAY-127', {
       summary: 'Add SEPA instant credit',
@@ -109,6 +110,12 @@ export function paiementsIssues() {
       statusCategory: 'in-progress',
       dev: healthyDev({ openPullRequests: 1, mergedPullRequests: 0 }),
     }),
+  ];
+}
+
+/** Late addition, reopened bug, unapproved merge and ticket without code. */
+export function qualityIssues() {
+  return [
     issue('PAY-132', { summary: 'Document settlement SLA', dev: unknownDev() }),
     issue('PAY-133', {
       summary: 'Round-up cents on FX',
@@ -123,12 +130,28 @@ export function paiementsIssues() {
       summary: 'Bump crypto provider',
       dev: healthyDev({ mergedWithoutApproval: 1 }),
     }),
+  ];
+}
+
+/** The five tickets with visible code and a known service: they raise nothing. */
+export function cleanIssues() {
+  return [
     issue('PAY-136', { summary: 'Trace id propagation' }),
     issue('PAY-137', { summary: 'Idempotency keys on refunds' }),
     issue('PAY-138', { summary: 'Retry budget tuning' }),
     issue('PAY-139', { summary: 'Settlement dashboard tiles' }),
     issue('PAY-140', { summary: 'PSP contract flags' }),
   ];
+}
+
+/** The nine tickets of release 2.4 that carry at least one signal (SPEC §18). */
+export function issuesWithSignals() {
+  return [...serviceAndBlockingIssues(), ...qualityIssues()];
+}
+
+/** The 14 tickets of release 2.4, in key order (SPEC §18). */
+export function paiementsIssues() {
+  return [...issuesWithSignals(), ...cleanIssues()];
 }
 
 export function paiementsIncidents() {

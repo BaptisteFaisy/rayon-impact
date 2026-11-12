@@ -32,6 +32,8 @@ const DYNAMIC_KEY_FAMILIES: Record<string, string[]> = {
   'severity.': [...SEVERITY_ORDER],
   'confidence.': CONFIDENCES,
   'decision.': DECISIONS,
+  // DecisionDialog libelle les trois options via `decision.option.${kind}`.
+  'decision.option.': DECISIONS,
 };
 
 /**

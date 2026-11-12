@@ -27,11 +27,23 @@ import {
   validateWaiverRequest,
   type WaiverRequest,
 } from '../engine/waiver';
-import type { Decision, DecisionKind, MessageRef, Policy, Verdict, Viewer, Waiver } from '../types';
+import type {
+  CollectedRelease,
+  Coverage,
+  Decision,
+  DecisionKind,
+  MessageRef,
+  Policy,
+  Signal,
+  Verdict,
+  Viewer,
+  Waiver,
+} from '../types';
 import { requireDossier, requirePolicy } from './release';
 import { ActionError, optionalString, parseIssueKeys, requireString } from './types';
 import type {
   ActionDeps,
+  MinimalRemovalView,
   RequestWaiverInput,
   RequestWaiverOutput,
   SimulateWithoutInput,
@@ -53,19 +65,56 @@ function knownIssueKeys(releaseKeys: { key: string }[], removed: string[]): stri
   return removed.filter((key) => !known.has(key));
 }
 
+/** The collection cached with the dossier: a simulation never re-collects. */
+async function requireFacts(deps: ActionDeps, versionId: string) {
+  const facts = await deps.index.getFacts(versionId);
+  if (!facts) {
+    throw new ActionError(
+      'no-facts',
+      `No cached collection for version ${versionId}: the simulation needs the last collected release.`,
+    );
+  }
+  return facts;
+}
+
+/** Signals that disappear when the given tickets leave the release. */
+function droppedSignals(
+  all: Signal[],
+  removed: string[],
+  release: CollectedRelease,
+): Signal[] {
+  const remaining = new Set(
+    signalsWithoutIssues(all, removed, release).map((signal) => signal.id),
+  );
+  return all.filter((signal) => !remaining.has(signal.id));
+}
+
+/**
+ * RI-13: the smallest set of tickets whose removal lifts the no-go — computed
+ * only when the current verdict is a no-go, otherwise there is nothing to lift.
+ */
+function minimalRemovalFor(
+  verdict: Verdict,
+  signals: Signal[],
+  coverage: Coverage,
+  release: CollectedRelease,
+): MinimalRemovalView | null {
+  if (verdict !== 'no-go') return null;
+  const minimal = minimalRemovalSet({ signals, coverage, release, verdict: computeVerdict });
+  return {
+    issueKeys: minimal.issueKeys,
+    simulationsRun: minimal.simulationsRun,
+    provenMinimal: minimal.provenMinimal,
+  };
+}
+
 /** `simulate-without`: the verdict if these tickets left the release. */
 export async function simulateWithout(
   input: SimulateWithoutInput,
   deps: ActionDeps,
 ): Promise<SimulateWithoutOutput> {
   const dossier = await requireDossier(deps, input.versionId);
-  const facts = await deps.index.getFacts(input.versionId);
-  if (!facts) {
-    throw new ActionError(
-      'no-facts',
-      `No cached collection for version ${input.versionId}: the simulation needs the last collected release.`,
-    );
-  }
+  const facts = await requireFacts(deps, input.versionId);
   const removed = parseIssueKeys(input.issueKeys);
   const coverage = dossier.snapshot.coverage;
   const simulation = simulateVerdict({
@@ -75,20 +124,13 @@ export async function simulateWithout(
     issueKeys: removed,
     verdict: computeVerdict,
   });
-  const remaining = signalsWithoutIssues(dossier.signals, removed, facts.release);
-  const remainingIds = new Set(remaining.map((signal) => signal.id));
-  const dropped = dossier.signals.filter((signal) => !remainingIds.has(signal.id));
-  // RI-13 : le plus petit ensemble à retirer pour quitter le no-go. Calculé
-  // seulement quand l'avis courant est no-go, sinon il n'y a rien à lever.
-  const minimal =
-    dossier.snapshot.verdict === 'no-go'
-      ? minimalRemovalSet({
-          signals: dossier.signals,
-          coverage,
-          release: facts.release,
-          verdict: computeVerdict,
-        })
-      : null;
+  const dropped = droppedSignals(dossier.signals, removed, facts.release);
+  const minimal = minimalRemovalFor(
+    dossier.snapshot.verdict,
+    dossier.signals,
+    coverage,
+    facts.release,
+  );
 
   deps.logger.log('info', 'action.simulate-without', {
     versionId: input.versionId,
@@ -110,13 +152,7 @@ export async function simulateWithout(
     droppedSignalCount: simulation.droppedSignalCount,
     droppedSignalIds: dropped.map((signal) => signal.id),
     conditions: simulation.result.conditions,
-    minimalRemoval: minimal
-      ? {
-          issueKeys: minimal.issueKeys,
-          simulationsRun: minimal.simulationsRun,
-          provenMinimal: minimal.provenMinimal,
-        }
-      : null,
+    minimalRemoval: minimal,
   };
 }
 

@@ -7,6 +7,7 @@ import { detectDoc } from '../signals/doc';
 import { detectFuture } from '../signals/future';
 import { applyMinorSampling, computeCoverage } from './coverage';
 import { computeVerdict } from './verdict';
+import type { NarrativeInput } from './narrative';
 import {
   buildNarrativePayload,
   fallbackNarrative,
@@ -19,10 +20,14 @@ import { defaultPolicyOverrides } from '../config';
 import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports';
 import { OUTCOME_WINDOW_HOURS } from '../types';
 import type {
+  CollectedRelease,
+  Coverage,
   Outcome,
   Policy,
   Signal,
   Snapshot,
+  VerdictResult,
+  Waiver,
 } from '../types';
 
 /**
@@ -160,6 +165,75 @@ async function writeNarrative(
  * Full recompute of one release: the dossier is written and stored, the
  * screens never read live data (SPEC §12).
  */
+/** Detection, sampling, coverage and verdict — the deterministic core (SPEC §8). */
+function assessRelease(
+  release: CollectedRelease,
+  policy: Policy,
+  now: string,
+  waivers: Waiver[],
+  previousSignals: Signal[],
+): { signals: Signal[]; coverage: Coverage; result: VerdictResult } {
+  const ctx: DetectionContext = { release, policy, now, waivers, previousSignals, pastOutcomes: [] };
+  const detected = detectAllSignals(ctx);
+  const sampled = applyMinorSampling(detected, release.issues.length);
+  const coverage = computeCoverage(release);
+  return {
+    signals: sampled.signals,
+    coverage,
+    result: computeVerdict(sampled.signals, coverage, release),
+  };
+}
+
+/** The structured payload handed to the model: signals only, plus context. */
+function narrativeInputFor(
+  signals: Signal[],
+  result: VerdictResult,
+  coverage: Coverage,
+  release: CollectedRelease,
+  policy: Policy,
+): NarrativeInput {
+  return {
+    signals,
+    verdict: result.verdict,
+    confidence: result.confidence,
+    coverage,
+    versionName: release.version.name,
+    projectKey: release.project.key,
+    locale: 'en',
+    serviceNames: policy.serviceMap.map((entry) => entry.serviceName),
+  };
+}
+
+/** The dossier row, built from the recompute result (SPEC §13). */
+function buildSnapshot(
+  request: RecomputeRequest,
+  release: CollectedRelease,
+  computedAt: string,
+  coverage: Coverage,
+  result: VerdictResult,
+  narrative: WrittenNarrative,
+  previousSnapshotId: string | null,
+): Snapshot {
+  return {
+    id: `${request.versionId}-${computedAt}`,
+    projectId: request.projectId,
+    projectKey: release.project.key,
+    versionId: request.versionId,
+    versionName: release.version.name,
+    versionReleased: release.version.released,
+    computedAt,
+    verdict: result.verdict,
+    confidence: result.confidence,
+    coverage,
+    counts: result.counts,
+    narrative: narrative.text,
+    narrativeVerified: narrative.fromModel,
+    narrativeRejections: narrative.rejections,
+    graphCachedAt: release.graph?.fetchedAt ?? null,
+    previousSnapshotId: previousSnapshotId,
+  };
+}
+
 export async function recomputeRelease(
   deps: PipelineDeps,
   request: RecomputeRequest,
@@ -178,58 +252,29 @@ export async function recomputeRelease(
   // SPEC §12: the collection is cached with the dossier, with its date.
   await deps.store.saveCollection(request.versionId, release, release.collectedAt);
 
-  const ctx: DetectionContext = {
-    release,
-    policy,
-    now: startedAt,
-    waivers,
-    previousSignals: previous.signals,
-    pastOutcomes: [],
-  };
+  const assessed = assessRelease(release, policy, startedAt, waivers, previous.signals);
+  const { signals: sampledSignals, coverage, result } = assessed;
 
-  const detected = detectAllSignals(ctx);
-  const sampled = applyMinorSampling(detected, release.issues.length);
-  const coverage = computeCoverage(release);
-  const result = computeVerdict(sampled.signals, coverage, release);
-
-  const narrativeInput = {
-    signals: sampled.signals,
-    verdict: result.verdict,
-    confidence: result.confidence,
-    coverage,
-    versionName: release.version.name,
-    projectKey: release.project.key,
-    locale: 'en' as const,
-    serviceNames: policy.serviceMap.map((entry) => entry.serviceName),
-  };
+  const narrativeInput = narrativeInputFor(sampledSignals, result, coverage, release, policy);
   const payload = buildNarrativePayload(narrativeInput);
   const narrative = await writeNarrative(deps, payload, narrativeInput);
 
-  const snapshot: Snapshot = {
-    id: `${request.versionId}-${startedAt}`,
-    projectId: request.projectId,
-    projectKey: release.project.key,
-    versionId: request.versionId,
-    versionName: release.version.name,
-    versionReleased: release.version.released,
-    computedAt: startedAt,
-    verdict: result.verdict,
-    confidence: result.confidence,
+  const snapshot = buildSnapshot(
+    request,
+    release,
+    startedAt,
     coverage,
-    counts: result.counts,
-    narrative: narrative.text,
-    narrativeVerified: narrative.fromModel,
-    narrativeRejections: narrative.rejections,
-    graphCachedAt: release.graph?.fetchedAt ?? null,
-    previousSnapshotId: previous.id,
-  };
+    result,
+    narrative,
+    previous.id,
+  );
 
-  await deps.store.saveSnapshot(snapshot, sampled.signals);
+  await deps.store.saveSnapshot(snapshot, sampledSignals);
 
   const finishedAt = deps.clock.now();
   return {
     snapshot,
-    signals: sampled.signals,
+    signals: sampledSignals,
     narrativeFromModel: narrative.fromModel,
     durationMs: Math.max(0, Date.parse(finishedAt) - Date.parse(startedAt)),
   };
@@ -239,16 +284,24 @@ export async function recomputeRelease(
  * 72 hour outcome of a published release (RI-15). Returns `null` while the
  * window is not over yet: no outcome, no silence (SPEC §15).
  */
-export async function recomputeOutcome(
+export interface OutcomeWindow {
+  releasedAt: string;
+  services: string[];
+  windowStart: string;
+  windowEnd: string;
+}
+
+/**
+ * The 72 h window of a published release, read from the cached collection.
+ * `null` when there is nothing to measure — and the reason is logged, because a
+ * missing window must never be read as "no incident" (SPEC §15).
+ */
+async function outcomeWindow(
   deps: PipelineDeps,
   request: RecomputeRequest,
-): Promise<Outcome | null> {
-  const now = deps.clock.now();
-  const existing = await deps.store.getOutcome(request.versionId);
-  if (existing) return existing;
-
-  // La date de publication vient de la version elle-meme, pas du dossier : un
-  // dossier est recalcule a chaque evenement, sa date n'est pas celle du deploy.
+): Promise<OutcomeWindow | null> {
+  // La date de publication vient de la version elle-même, pas du dossier : un
+  // dossier est recalculé à chaque événement, sa date n'est pas celle du déploiement.
   const cached = await deps.store.getCollection(request.versionId);
   if (!cached) {
     deps.logger.log('warn', 'bilan 72 h impossible : aucune collecte en cache', {
@@ -264,7 +317,6 @@ export async function recomputeOutcome(
     });
     return null;
   }
-
   const services = [
     ...new Set(
       release.issues
@@ -273,8 +325,25 @@ export async function recomputeOutcome(
     ),
   ];
   const releasedMs = new Date(releasedAt).getTime();
-  const windowStart = new Date(releasedMs).toISOString();
-  const windowEnd = new Date(releasedMs + OUTCOME_WINDOW_HOURS * 3_600_000).toISOString();
+  return {
+    releasedAt,
+    services,
+    windowStart: new Date(releasedMs).toISOString(),
+    windowEnd: new Date(releasedMs + OUTCOME_WINDOW_HOURS * 3_600_000).toISOString(),
+  };
+}
+
+export async function recomputeOutcome(
+  deps: PipelineDeps,
+  request: RecomputeRequest,
+): Promise<Outcome | null> {
+  const now = deps.clock.now();
+  const existing = await deps.store.getOutcome(request.versionId);
+  if (existing) return existing;
+
+  const window = await outcomeWindow(deps, request);
+  if (!window) return null;
+  const { releasedAt, services, windowStart, windowEnd } = window;
 
   // Sans source d'incidents, pas de bilan : un bilan vide se lirait comme
   // « tout va bien ». On le dit, on ne l'ecrit pas.
