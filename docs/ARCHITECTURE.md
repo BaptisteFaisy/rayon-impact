@@ -141,9 +141,11 @@ live waiver does), and does not invent timestamps (`ctx.now`).
    (src/triggers/trailing.ts) and stays awake until the window closes: whatever
    the window held back — during the recompute or in the seconds after it — is
    replayed, at the instant the one-per-minute rule allows. Bounded three ways:
-   MAX_TRAILING_PASSES = 3 recomputes, MAX_TRAILING_WAITS = 2 waits and a 300 s
-   budget against the 900 s timeout, so an invocation never runs away; what is
-   left goes to the hourly sweep.
+   MAX_TRAILING_PASSES = 3 recomputes, MAX_TRAILING_WAITS = 4 waits and a 300 s
+   budget against the 900 s timeout (the budget binds first), so an invocation
+   never runs away; what is left goes to the hourly sweep. Four waits and not
+   two: the observed pattern is wait → recompute → wait → recompute, a burst of
+   two changes each landing inside the window of the previous recompute.
                     │
                     v
 5. Pipeline (src/engine/pipeline.ts, not written yet) with the injected deps:

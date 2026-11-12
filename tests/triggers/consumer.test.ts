@@ -171,7 +171,7 @@ describe('triggers/consumer — passe finale des demandes reportées', () => {
     // La première attente est la fermeture de la fenêtre ; les suivantes sont
     // bornées (MAX_TRAILING_WAITS), l’invocation ne reste pas éveillée pour rien.
     expect(slept[0]).toBe(60_000);
-    expect(slept.length).toBeLessThanOrEqual(3);
+    expect(slept.length).toBeLessThanOrEqual(5);
     await expect(gate.deferredRequest(message.versionId)).resolves.toBeNull();
   });
 
