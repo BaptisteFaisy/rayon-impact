@@ -27,15 +27,22 @@ import type {
   RecomputeResult,
 } from '../ports';
 
-/** Passes au plus par invocation : une rafale continue ne doit pas l'épuiser. */
+/** Recalculs au plus par invocation : une rafale continue ne doit pas l'épuiser. */
 export const MAX_TRAILING_PASSES = 3;
 
 /**
- * Budget total d'une invocation, en ms. Le consumer Forge a `timeoutSeconds:
- * 900` ; chaque passe coûte l'attente (≤ 60 s) plus un recalcul (mesuré à 7-45 s
- * en production), donc trois passes tiennent largement dans 480 s.
+ * Attentes de fermeture de fenêtre au plus par invocation. Une attente ne coûte
+ * pas de recalcul, mais elle occupe l'invocation : elle est donc bornée aussi.
  */
-export const TRAILING_BUDGET_MS = 480_000;
+export const MAX_TRAILING_WAITS = 2;
+
+/**
+ * Budget total d'une invocation, en ms. Le consumer Forge a `timeoutSeconds:
+ * 900` ; chaque attente coûte au plus la fenêtre (60 s) et chaque recalcul 7 à
+ * 45 s (mesuré en production), donc le pire cas tient dans 300 s — marge
+ * comprise pour la collecte, l'écriture du dossier et les appels au modèle.
+ */
+export const TRAILING_BUDGET_MS = 300_000;
 
 export interface TrailingDeps {
   gate: RecomputeGate;
@@ -118,6 +125,59 @@ async function replayDeferred(
   }
 }
 
+/** Ce que la passe doit faire à ce tour : attendre, recalculer, ou s’arrêter. */
+type Step =
+  | { kind: 'stop' }
+  | { kind: 'wait'; waitMs: number }
+  | { kind: 'run'; deferred: RecomputeMessage; waitMs: number };
+
+/** Le budget d'une invocation, et ce qu'elle a déjà rejoué. */
+interface Budget {
+  openedAt: number;
+  budgetMs: number;
+  runs: number;
+}
+
+/** Lit la porte, tranche, et journalise ce qui retombe sur le balayage horaire. */
+async function nextStep(
+  trailing: TrailingDeps,
+  message: RecomputeMessage,
+  collectedAt: string,
+  budget: Budget,
+): Promise<Step> {
+  const deferred = await trailing.gate.deferredRequest(message.versionId);
+  const decision = trailingPass(
+    await trailing.gate.lastQueuedAt(message.versionId),
+    deferred,
+    collectedAt,
+    trailing.clock.now(),
+    trailing.minIntervalSeconds,
+  );
+  if (decision.action === 'none') {
+    return { kind: 'stop' };
+  }
+  const now = Date.parse(trailing.clock.now());
+  if (!withinBudget(budget.openedAt, now, decision.waitMs, budget.budgetMs)) {
+    if (deferred !== null) {
+      trailing.logger.log('info', 'recompute trailing laissé au balayage horaire', {
+        versionId: message.versionId,
+        passes: budget.runs,
+        waitMs: decision.waitMs,
+      });
+    }
+    return { kind: 'stop' };
+  }
+  if (decision.action === 'wait') {
+    return { kind: 'wait', waitMs: decision.waitMs };
+  }
+  if (decision.action === 'clear' || deferred === null) {
+    // Le recalcul qui vient de finir a déjà vu ce changement : on solde.
+    await trailing.gate.clearDeferred(message.versionId);
+    return { kind: 'stop' };
+  }
+  return { kind: 'run', deferred, waitMs: decision.waitMs };
+}
+
 /**
  * Rejoue les demandes que la fenêtre de regroupement a retenues pour cette
  * version, jusqu'à épuisement des bornes. Rendre la liste des résultats permet
@@ -129,38 +189,39 @@ export async function runTrailingPass(
   message: RecomputeMessage,
   collectStartedAt: string,
 ): Promise<RecomputeResult[]> {
-  const budgetMs = trailing.budgetMs ?? TRAILING_BUDGET_MS;
-  const openedAt = Date.parse(trailing.clock.now());
+  const budget: Budget = {
+    openedAt: Date.parse(trailing.clock.now()),
+    budgetMs: trailing.budgetMs ?? TRAILING_BUDGET_MS,
+    runs: 0,
+  };
   const results: RecomputeResult[] = [];
   let collectedAt = collectStartedAt;
-  for (let pass = 1; pass <= MAX_TRAILING_PASSES; pass += 1) {
-    const deferred = await trailing.gate.deferredRequest(message.versionId);
-    const decision = trailingPass(
-      await trailing.gate.lastQueuedAt(message.versionId),
-      deferred,
-      collectedAt,
-      trailing.clock.now(),
-      trailing.minIntervalSeconds,
+  let waits = 0;
+  while (budget.runs < MAX_TRAILING_PASSES && waits < MAX_TRAILING_WAITS) {
+    const step = await nextStep(trailing, message, collectedAt, budget);
+    if (step.kind === 'stop') {
+      break;
+    }
+    if (step.kind === 'wait') {
+      // Fenêtre encore ouverte et rien de retenu *pour l'instant* : on reste
+      // éveillé jusqu'à sa fermeture. Sans cette attente, une demande reportée
+      // après la fin du recalcul serait orpheline jusqu'au balayage horaire —
+      // c'est exactement le scénario du cas de recette §17.6.
+      await trailing.sleep(step.waitMs);
+      waits += 1;
+      continue;
+    }
+    const replayed = await replayDeferred(
+      run,
+      trailing,
+      message,
+      step.deferred,
+      step.waitMs,
+      budget.runs + 1,
     );
-    if (decision.action === 'none') {
-      break;
-    }
-    if (decision.action === 'clear' || deferred === null) {
-      // Le recalcul qui vient de finir a déjà vu ce changement : on solde.
-      await trailing.gate.clearDeferred(message.versionId);
-      break;
-    }
-    if (!withinBudget(openedAt, Date.parse(trailing.clock.now()), decision.waitMs, budgetMs)) {
-      trailing.logger.log('info', 'recompute trailing laissé au balayage horaire', {
-        versionId: message.versionId,
-        pass,
-        waitMs: decision.waitMs,
-      });
-      break;
-    }
-    const replayed = await replayDeferred(run, trailing, message, deferred, decision.waitMs, pass);
     collectedAt = replayed.startedAt;
     results.push(replayed.result);
+    budget.runs += 1;
   }
   return results;
 }

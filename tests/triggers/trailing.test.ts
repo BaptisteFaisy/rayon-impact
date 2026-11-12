@@ -5,7 +5,7 @@ import {
   type TrailingDeps,
   type TrailingRun,
 } from '../../src/triggers/trailing';
-import { createMemoryGate } from '../../src/triggers/events';
+import { createMemoryGate, type RecomputeGate } from '../../src/triggers/events';
 import type {
   LogLevel,
   Logger,
@@ -67,24 +67,36 @@ function result(): RecomputeResult {
 }
 
 interface Options {
+  /** Porte partagée avec le test : de quoi y déposer une demande en cours de route. */
+  gate?: RecomputeGate;
   budgetMs?: number;
   minIntervalSeconds?: number;
   recompute?: (deps: PipelineDeps, request: RecomputeRequest) => Promise<RecomputeResult>;
+  /** Appelé après chaque attente simulée : de quoi faire arriver un événement. */
+  onSleep?: () => Promise<void>;
 }
 
 function setup(options: Options = {}) {
   const clock = fakeClock(NOW);
-  const gate = createMemoryGate();
+  const gate = options.gate ?? createMemoryGate();
   const logger = recordingLogger();
   const slept: number[] = [];
+  const order: string[] = [];
   const requests: RecomputeRequest[] = [];
-  const recompute =
+  const base =
     options.recompute ??
     (async (_deps: PipelineDeps, request: RecomputeRequest): Promise<RecomputeResult> => {
       requests.push(request);
       clock.advance(8_000);
       return result();
     });
+  const recompute = async (
+    deps: PipelineDeps,
+    request: RecomputeRequest,
+  ): Promise<RecomputeResult> => {
+    order.push('recompute');
+    return base(deps, request);
+  };
   const run: TrailingRun = { pipeline: {} as PipelineDeps, recompute };
   const trailing: TrailingDeps = {
     gate,
@@ -92,12 +104,16 @@ function setup(options: Options = {}) {
     logger,
     sleep: async (ms: number): Promise<void> => {
       slept.push(ms);
+      order.push('sleep');
       clock.advance(ms);
+      if (options.onSleep) {
+        await options.onSleep();
+      }
     },
     ...(options.budgetMs === undefined ? {} : { budgetMs: options.budgetMs }),
     ...(options.minIntervalSeconds === undefined ? {} : { minIntervalSeconds: options.minIntervalSeconds }),
   };
-  return { run, trailing, gate, clock, logger, slept, requests };
+  return { run, trailing, gate, clock, logger, slept, order, requests };
 }
 
 describe('triggers/trailing — runTrailingPass', () => {
@@ -108,8 +124,10 @@ describe('triggers/trailing — runTrailingPass', () => {
     const results = await runTrailingPass(run, trailing, message, COLLECT);
 
     expect(results).toEqual([]);
-    expect(slept).toEqual([]);
     expect(requests).toEqual([]);
+    // L'invocation reste éveillée jusqu'à la fermeture de la fenêtre : c'est ce
+    // qui permet de rejouer une demande qui arriverait entre-temps.
+    expect(slept).toEqual([40_000]);
   });
 
   it('rejoue la demande reportée en attendant la fin de la fenêtre', async () => {
@@ -121,7 +139,7 @@ describe('triggers/trailing — runTrailingPass', () => {
 
     expect(results).toHaveLength(1);
     // Fenêtre de 60 s ouverte à 10:00:00, horloge à 10:00:20 → 40 s d’attente.
-    expect(slept).toEqual([40_000]);
+    expect(slept[0]).toBe(40_000);
     expect(requests[0]).toEqual({
       projectId: 'proj-pay',
       versionId: 'ver-24',
@@ -144,8 +162,8 @@ describe('triggers/trailing — runTrailingPass', () => {
     await expect(gate.deferredRequest(message.versionId)).resolves.toBeNull();
   });
 
-  it('ne dort pas quand la fenêtre est déjà écoulée', async () => {
-    const { run, trailing, gate, clock, slept } = setup();
+  it('ne dort pas avant de recalculer quand la fenêtre est déjà écoulée', async () => {
+    const { run, trailing, gate, clock, order } = setup();
     clock.advance(120_000);
     await gate.markQueued(message.versionId, START);
     await gate.deferRequest({ ...message, requestedAt: DEFERRED_AT }, DEFERRED_AT);
@@ -153,7 +171,31 @@ describe('triggers/trailing — runTrailingPass', () => {
     const results = await runTrailingPass(run, trailing, message, COLLECT);
 
     expect(results).toHaveLength(1);
-    expect(slept).toEqual([]);
+    expect(order[0]).toBe('recompute');
+  });
+
+  it('rejoue une demande arrivée après la fin du recalcul (scénario §17.6)', async () => {
+    const gate = createMemoryGate();
+    let injected = false;
+    const { run, trailing, order, requests } = setup({
+      gate,
+      onSleep: async () => {
+        if (injected) return;
+        injected = true;
+        // La transition arrive 12 s après le recalcul : dans la fenêtre, et après
+        // sa fin. Sans l'attente de l'invocation, elle attendrait le balayage.
+        await gate.deferRequest({ ...message, requestedAt: DEFERRED_AT }, DEFERRED_AT);
+      },
+    });
+    await gate.markQueued(message.versionId, START);
+
+    const results = await runTrailingPass(run, trailing, message, COLLECT);
+
+    expect(order[0]).toBe('sleep');
+    expect(order[1]).toBe('recompute');
+    expect(results).toHaveLength(1);
+    expect(requests[0]?.reason).toBe('event');
+    await expect(gate.deferredRequest(message.versionId)).resolves.toBeNull();
   });
 
   it('borne le nombre de passes d’une rafale continue', async () => {
