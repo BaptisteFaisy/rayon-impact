@@ -157,7 +157,7 @@ function Dossier({
       <DossierTabs
         tab={tab}
         onTab={setTab}
-        dossier={dossier.data}
+        dossier={dossier.data!}
         graph={graph.data}
         teams={teams}
         locale={locale}
