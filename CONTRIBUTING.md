@@ -129,9 +129,10 @@ cd - && git worktree remove ../rayon-wt/<topic>
    declares more, or nothing at all). Never lengthen a timeout: shorten the job.
    Context and the reasons: [docs/OPS.md](docs/OPS.md) §1.
 
-Also refused in added lines, whatever the declared scope: `-X ours` / `-X
-theirs`, `--force` without `--force-with-lease`, `pull_request_target`, anything
-shaped like a secret (`sk-…`, `sk_…`, `ghp_…`), a hard-coded `sdk.dir=`, and
+Also refused in added lines, whatever the declared scope: a forced-side merge
+(`-X` followed by `ours` or `theirs`), a force-push that is not
+`--force-with-lease`, the elevated `pull_request`+`_target` trigger, anything
+shaped like a secret (`sk-…`, `sk_…`, `ghp_…`), a hard-coded `sdk.dir=` line and
 conflict markers in any tracked file. After a manual rebase, check before
 pushing:
 
