@@ -7,7 +7,7 @@ vi.mock('@forge/bridge', async () => (await import('./mocks')).forgeBridgeMock);
 import { demoData, resetForgeMocks, setProductContext } from './mocks';
 import { ProjectPage } from '../../src/ui/projectPage';
 import { IssueContext, IssueContextView } from '../../src/ui/issueContext';
-import { SettingsPage } from '../../src/ui/settingsPage';
+import { SettingsPage, SettingsView } from '../../src/ui/settingsPage';
 import { DashboardGadget, GadgetList } from '../../src/ui/gadget';
 import {
   gadgetLoaded,
@@ -139,6 +139,20 @@ describe('screen 3 — jira:projectSettingsPage', () => {
     expect(html).toContain('Réglages du rayon d’impact');
     expect(html).toContain('Enregistrer');
     expect(html).toContain('Gravité');
+  });
+
+  it('renders even a half-policy instead of crashing (2026-11-13)', () => {
+    // Ce que le pont Forge envoyait quand le résolveur répondait `null` : un
+    // objet sans champ. Le rendu plantait sur `COMP-01` et le module restait
+    // vide — ce test verrouille la correction.
+    const partial = { projectId: 'proj-pay' } as never;
+    const html = renderToStaticMarkup(
+      <SettingsView policy={partial} locale="en" onChange={() => {}} onSave={() => {}} />,
+    );
+    expect(html).toContain('Release impact settings');
+    for (const code of listSignalCodes()) {
+      expect(html).toContain(code);
+    }
   });
 });
 

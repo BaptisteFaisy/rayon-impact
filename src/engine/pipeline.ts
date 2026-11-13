@@ -17,6 +17,7 @@ import {
 } from './narrative';
 import { computeOutcome } from './outcome';
 import { defaultPolicyOverrides } from '../config';
+import { withPolicyDefaults } from '../policy';
 import type { PipelineDeps, RecomputeRequest, RecomputeResult } from '../ports';
 import { OUTCOME_WINDOW_HOURS } from '../types';
 import type {
@@ -72,27 +73,13 @@ function sortSignals(signals: Signal[]): Signal[] {
   );
 }
 
-function defaultPolicy(projectId: string): Policy {
-  return {
-    projectId,
-    severityOverrides: {},
-    disabledSignals: [],
-    waiverApprovers: [],
-    jsmProjectKeys: [],
-    serviceMap: [],
-    observationMode: false,
-    defaultWaiverHours: 48,
-    ...defaultPolicyOverrides(),
-  };
-}
-
 /** The policy of the project, or a neutral one when the project has none. */
 export async function resolvePolicy(
   store: PipelineDeps['store'],
   projectId: string,
 ): Promise<Policy> {
   const stored = await store.getPolicy(projectId);
-  return stored ?? defaultPolicy(projectId);
+  return withPolicyDefaults(stored ?? defaultPolicyOverrides(), projectId);
 }
 
 /** Signals of the previous snapshot, so `firstSeenAt` survives a recompute. */
