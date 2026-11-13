@@ -3,6 +3,7 @@ import { invoke } from '@forge/bridge';
 import { useLocale, useProject, useScreen } from './hooks';
 import { SeverityTable } from './components/SeverityTable';
 import { ListField } from './components/ListField';
+import { basePolicy, withPolicyDefaults } from '../policy';
 import type { Locale, Policy } from '../types';
 import { Box, Button, Checkbox, Heading, Label, SectionMessage, Text } from './kit';
 
@@ -24,7 +25,10 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const policy = draft ?? screen.data ?? emptyPolicy(project.id ?? '');
+  // La policy affichée est toujours complète : celle du résolveur, complétée
+  // par les valeurs neutres si elle est venue partielle (une policy enregistrée
+  // avant l'ajout d'un champ ne doit pas casser l'écran).
+  const policy = withPolicyDefaults(draft ?? screen.data, project.id ?? '');
 
   if (screen.loading) return <Box role="status">…</Box>;
   if (screen.error) return <Text>{screen.error}</Text>;
@@ -52,6 +56,10 @@ export function SettingsPage() {
 /**
  * The loaded settings body, taking the policy as props: `renderToStaticMarkup`
  * never runs the `useScreen` effect, so tests render this view directly.
+ *
+ * The policy is completed here as well as in `SettingsPage`: a half-policy
+ * (`severityOverrides` missing) made this view throw on `COMP-01` and left the
+ * whole module blank — a view must never crash on the data it is handed.
  */
 export function SettingsView({
   policy,
@@ -64,11 +72,12 @@ export function SettingsView({
   onChange: (next: Policy) => void;
   onSave: () => void;
 }) {
+  const safe = withPolicyDefaults(policy, policy.projectId ?? '');
   return (
     <Box>
       <Heading as="h3">{locale === 'fr' ? 'Réglages du rayon d’impact' : 'Release impact settings'}</Heading>
-      <SeverityTable policy={policy} locale={locale} onChange={onChange} />
-      <PolicyFields policy={policy} locale={locale} onChange={onChange} />
+      <SeverityTable policy={safe} locale={locale} onChange={onChange} />
+      <PolicyFields policy={safe} locale={locale} onChange={onChange} />
       <Button appearance="primary" onClick={onSave}>
         {locale === 'fr' ? 'Enregistrer' : 'Save'}
       </Button>
@@ -137,15 +146,5 @@ function PolicyFields({
   );
 }
 
-function emptyPolicy(projectId: string): Policy {
-  return {
-    projectId,
-    severityOverrides: {},
-    disabledSignals: [],
-    waiverApprovers: [],
-    jsmProjectKeys: [],
-    serviceMap: [],
-    observationMode: false,
-    defaultWaiverHours: 48,
-  };
-}
+/** Exported for the tests: the neutral policy the screen falls back to. */
+export { basePolicy as emptyPolicy };
