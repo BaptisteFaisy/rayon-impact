@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@forge/bridge';
 import { useProductContext } from '@forge/react';
+import { readAnswer } from './response';
 import type { Locale } from '../types';
 
 /**
@@ -32,8 +33,11 @@ export function useScreen<T>(
   useEffect(() => {
     let alive = true;
     invoke<T>(key, payload)
-      .then((data) => {
-        if (alive) setState({ data, loading: false, error: null });
+      .then((raw) => {
+        if (alive) {
+          const answer = readAnswer<T>(raw);
+          setState({ data: answer.data, loading: false, error: answer.error });
+        }
       })
       .catch((error: unknown) => {
         if (alive) {
