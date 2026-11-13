@@ -147,13 +147,26 @@ export const CREATE_SERVICE_MAP = `
     INDEX idx_service_map_component (project_id, jira_component)
   )`;
 
-/** The collection cached with the dossier, so the screens never re-collect. */
+/**
+ * The collection cached with the dossier, so the screens never re-collect.
+ *
+ * `MEDIUMTEXT` and not `TEXT`: a release of 200 tickets with its sibling
+ * versions, incidents, pages and graph facts serialises far above the 65 535
+ * byte limit of `TEXT` (measured: 134 492 bytes for 200 tickets, and the real
+ * payload is larger still). A payload that does not fit makes the write fail,
+ * so `screen.impactGraph` answered `null` and the dashboard showed no release
+ * date — a missing cache, not a missing feature (2026-11-13).
+ */
 export const CREATE_COLLECTION = `
   CREATE TABLE IF NOT EXISTS collection (
     version_id VARCHAR(64) NOT NULL PRIMARY KEY,
     collected_at TIMESTAMP NOT NULL,
-    payload_json TEXT
+    payload_json MEDIUMTEXT
   )`;
+
+/** An existing `collection` table created before the column was widened. */
+export const ALTER_COLLECTION_MEDIUMTEXT =
+  'ALTER TABLE collection MODIFY payload_json MEDIUMTEXT';
 
 /**
  * v002/v003 : la table `signal` historique a `id` comme clé primaire, or `id`
@@ -216,6 +229,7 @@ export const EXTRA_MIGRATIONS: DdlMigration[] = [
   { name: 'v002_drop_signal_legacy', ddl: DROP_SIGNAL_LEGACY },
   { name: 'v003_create_signal_row_key', ddl: CREATE_SIGNAL_ROW_KEY },
   { name: 'v004_create_recalc_deferred', ddl: CREATE_RECALC_DEFERRED },
+  { name: 'v005_collection_mediumtext', ddl: ALTER_COLLECTION_MEDIUMTEXT },
 ];
 
 /**

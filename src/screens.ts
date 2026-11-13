@@ -60,12 +60,26 @@ async function savePolicy(payload: ScreenPayload, deps: ActionDeps): Promise<unk
   return { ok: true, projectId: policy.projectId };
 }
 
-/** RI-12: the impact graph, built from the cached collection and the signals. */
+/**
+ * RI-12: the impact graph, built from the cached collection and the signals.
+ *
+ * The collection is written on every recompute, so its absence is a real
+ * defect — not a missing feature. A payload that exceeds the column makes the
+ * write fail silently, and the screen then showed "graph unavailable" with no
+ * explanation; the journal now names the missing half (2026-11-13).
+ */
 async function impactGraph(payload: ScreenPayload, deps: ActionDeps): Promise<unknown> {
   const versionId = required(payload, 'versionId');
   const cached = await deps.store.getCollection(versionId);
   const dossier = await deps.store.getDossier(versionId);
-  if (!cached || !dossier) return null;
+  if (!dossier) {
+    deps.logger.log('warn', 'graphe : aucun dossier enregistre', { versionId });
+    return null;
+  }
+  if (!cached) {
+    deps.logger.log('warn', 'graphe : collection absente ou illisible', { versionId });
+    return null;
+  }
   return buildImpactGraph(cached.release, dossier.signals);
 }
 
