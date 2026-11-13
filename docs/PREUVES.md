@@ -157,6 +157,35 @@ Captures : `2026-11-13-reglages-rendu-apres-correctif.png` et
 Le test de rendu d'une policy partielle **échoue sans le correctif** et passe avec
 (`tests/ui/screens.test.tsx`) : le bug de production est verrouillé par un test.
 
+### Le cache `collection` était vide : la colonne était trop petite (corrigé le 13/11)
+
+Le graphe d'impact et la date de release des versions étaient absents **partout** :
+`screen.impactGraph` répondait `null` (« Graphe indisponible ») et le gadget affichait
+`releaseDate: null`. Ce n'était pas une fonctionnalité manquante : le cache
+`collection` était **vide**.
+
+La cause : `collection.payload_json` était un `TEXT` MySQL — **65 535 octets**. Un release
+de 200 tickets (tickets, versions sœurs, incidents, pages, faits du graphe) sérialise bien
+au-delà : **134 492 octets** mesurés sur le jeu de fixtures, et le payload réel est plus
+gros encore. L'écriture échouait, donc la collection restait vide, et l'écran disait
+« Graphe indisponible » **sans dire pourquoi**.
+
+Le correctif : `payload_json` devient `MEDIUMTEXT` (16 Mio), avec la migration
+`v005_collection_mediumtext` pour les installations existantes ; et `screen.impactGraph`
+journalise désormais la partie manquante (dossier ou collection) au lieu de répondre `null`
+en silence.
+
+Preuve (production, après recalcul déclenché par le vrai événement Jira) :
+
+```
+screen.impactGraph  10100  → { nodes, edges, truncated }  150 nœuds
+screen.impactGraph  10102  → { nodes, edges, truncated }  150 nœuds
+screen.dashboardGadget       → 20 versions, releaseDate = 2026-12-20
+```
+
+Capture : `2026-11-13-graphe-impact.png` — l'onglet « Graph » de la page projet, avec le
+réseau d'impact et la mention « Graph truncated: more than 150 nodes ».
+
 
 ## Rejouer la preuve
 
@@ -202,6 +231,7 @@ sa liste équivalente (SPEC §11).
 | `2026-11-12-reglages-attente-resolveur.png` | l'écran de réglages sur le squelette de chargement — l'état d'alors, avant le correctif du 13/11 (la cause n'était pas celle que l'on croyait : voir « La cause réelle » plus haut). |
 | `2026-11-13-reglages-rendu-apres-correctif.png` | **l'écran de réglages rendu** : « Release impact settings », la table des gravités (COMP-01, COMP-02, COMP-03…), les sélecteurs et cases à cocher. 39 champs de formulaire là où le module était vide. |
 | `2026-11-13-page-projet-rendu-apres-correctif.png` | **la page projet rendue** : verdict NO-GO, couverture, « No change since the last dossier », onglets et bouton « Simulate without ». |
+| `2026-11-13-graphe-impact.png` | **l'onglet « Graph » de la page projet** : le réseau d'impact rendu (150 nœuds) et la mention « Graph truncated: more than 150 nodes ». Le cache `collection` est enfin alimenté. |
 
 **Recette navigateur reproductible** (fenêtre sans focus, sans toucher à la session de
 l'utilisateur) : copier le profil Chrome de la machine, en extraire les cookies de session **en
