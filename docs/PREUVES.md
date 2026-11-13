@@ -103,9 +103,59 @@ Le contexte du **résolveur** connaît le projet (`extension.project.id = 10234`
 **vue** reçoit ne le porte pas toujours. Le résolveur complète donc la charge utile
 (`withProjectId`) et, quand un écran échoue, il journalise et répond un refus au lieu de
 laisser le module vide — et les écrans affichent désormais l'erreur au lieu d'un squelette
-infini. Après ce correctif, l'erreur « Cannot read properties of undefined (reading
-'COMP-01') » a disparu ; **le rendu complet de ces deux modules reste à faire** (écart ouvert,
-suivi dans l'issue du dépôt).
+infini.
+
+### La cause réelle : le pont Forge rend `null` par `{}` (corrigé le 13/11)
+
+L'erreur « Cannot read properties of undefined (reading 'COMP-01') » a disparu, mais les
+deux modules restaient **vides**. La cause n'était plus dans la charge utile, mais dans la
+**forme de la réponse**. Mesurée en interrogeant le pont depuis l'iframe du module :
+
+| appel | réponse du résolveur | ce que la vue reçoit |
+|---|---|---|
+| `screen.projectSettings` (aucune policy enregistrée) | `null` | `{}` |
+| `screen.impactGraph` (collection absente) | `null` | `{}` |
+| `screen.projectPage` (version inconnue) | `null` | `{}` |
+| `screen.projectVersions` | tableau | le tableau |
+
+Un objet vide est **truthy**. L'écran des réglages faisait
+`policy = draft ?? screen.data ?? emptyPolicy(...)` : il prenait donc `{}` pour une policy,
+`severityOverrides` était `undefined`, et `SeverityRow` lisait `severityOverrides['COMP-01']`
+→ **TypeError** → l'arbre React ne rendait rien → module vide. La console le disait mot
+pour mot :
+
+```
+C-error: TypeError: Cannot read properties of undefined (reading 'COMP-01')
+    at pe (…/main.js:2:2396)
+C-error: TypeError: Cannot read properties of undefined (reading 'join')
+    at ge (…/main.js:2:240544)
+```
+
+Second défaut, même famille : un écran en erreur répond le refus
+`{ok:false, error:{code,message}}`, que la vue rendait comme une donnée.
+
+**Le correctif** (`src/ui/response.ts`) : la lecture d'une réponse distingue *donnée*,
+*vide* et *refus*, et `useScreen` l'applique — un seul endroit pour les quatre écrans.
+`screen.projectSettings` répond en plus la **policy effective** du projet (celle
+enregistrée, ou les valeurs par défaut), jamais `null` ; et `SettingsView` complète la
+policy qu'on lui passe, pour qu'aucune vue ne plante sur les données qu'elle reçoit.
+
+### Preuve du rendu (13/11/2026, production)
+
+Vérifié dans un vrai navigateur (Chrome headless, profil dérivé, cookies de session
+copiés en lecture seule — la session de l'utilisateur n'est jamais touchée), sur le site
+de démo `one-atlas-cndz.atlassian.net`, projet `PAY` :
+
+| module | avant | après (capture) |
+|---|---|---|
+| `jira:projectSettingsPage` | module vide (0 champ de formulaire) | **39 champs**, table des gravités, bouton « Save » |
+| `jira:projectPage` | module vide | verdict **NO-GO**, couverture, onglets, « Simulate without » |
+
+Captures : `2026-11-13-reglages-rendu-apres-correctif.png` et
+`2026-11-13-page-projet-rendu-apres-correctif.png` (`docs/preuves/captures/`).
+
+Le test de rendu d'une policy partielle **échoue sans le correctif** et passe avec
+(`tests/ui/screens.test.tsx`) : le bug de production est verrouillé par un test.
 
 
 ## Rejouer la preuve
@@ -149,7 +199,9 @@ sa liste équivalente (SPEC §11).
 | capture | ce qu'elle montre |
 | --- | --- |
 | `2026-11-12-panneau-ticket-RAYON-IMPACT.png` | le panneau « Rayon d'impact » du ticket PAY-19, déplié : *This ticket holds back 2.4: COMP-01 — Ticket PAY-19 is still In Progress (in-progress).* |
-| `2026-11-12-reglages-attente-resolveur.png` | **écart ouvert** : l'écran de réglages reste sur le squelette de chargement — le résolveur `screen.projectSettings` ne répond pas sur le module `jira:projectSettingsPage`. Les trois autres écrans répondent. |
+| `2026-11-12-reglages-attente-resolveur.png` | l'écran de réglages sur le squelette de chargement — l'état d'alors, avant le correctif du 13/11 (la cause n'était pas celle que l'on croyait : voir « La cause réelle » plus haut). |
+| `2026-11-13-reglages-rendu-apres-correctif.png` | **l'écran de réglages rendu** : « Release impact settings », la table des gravités (COMP-01, COMP-02, COMP-03…), les sélecteurs et cases à cocher. 39 champs de formulaire là où le module était vide. |
+| `2026-11-13-page-projet-rendu-apres-correctif.png` | **la page projet rendue** : verdict NO-GO, couverture, « No change since the last dossier », onglets et bouton « Simulate without ». |
 
 **Recette navigateur reproductible** (fenêtre sans focus, sans toucher à la session de
 l'utilisateur) : copier le profil Chrome de la machine, en extraire les cookies de session **en
