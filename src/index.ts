@@ -29,7 +29,6 @@ import {
   listOpenVersions,
   listReleasedVersions,
   listVersions,
-  listVersionsForIssue,
 } from './db/queries';
 import { DEFAULT_RETENTION, pruneSnapshots } from './db/retention';
 import { createForgeSqlClient } from './db/sql-client';
@@ -38,8 +37,7 @@ import { ACTION_KEYS, runAction } from './actions/registry';
 import { ActionError, makeViewer } from './actions/types';
 import type { ActionDeps, DossierIndex } from './actions/types';
 import { recomputeOutcome, recomputeRelease, resolvePolicy } from './engine/pipeline';
-import { buildImpactGraph } from './engine/graph';
-import { diffSnapshots } from './engine/diff';
+import { SCREENS } from './screens';
 import { onJiraEvent } from './triggers/events';
 import { createFailOpenSqlGate } from './db/gate';
 import type { JiraEventLike } from './triggers/events';
@@ -155,102 +153,10 @@ async function createDeps(context: ForgeContext): Promise<ActionDeps> {
 
 /* --------------------------------------------------------------- screens */
 
-const required = (payload: ForgePayload, field: string): string => {
-  const value = payload[field];
-  if (typeof value !== 'string' || value.length === 0) {
-    throw new ActionError('invalid-input', `Screen payload needs a "${field}" string.`);
-  }
-  return value;
-};
-
-/** Screen invocations (SPEC §11): always the last saved dossier (SPEC §12). */
-const SCREENS: Record<string, (payload: ForgePayload, deps: ActionDeps) => Promise<unknown>> = {
-  'screen.projectPage': async (payload, deps) =>
-    deps.store.getDossier(required(payload, 'versionId')),
-  'screen.projectSettings': async (payload, deps) =>
-    deps.store.getPolicy(required(payload, 'projectId')),
-  'screen.dashboardGadget': async (payload, deps) => {
-    const projectId = required(payload, 'projectId');
-    const snapshots = await deps.store.listSnapshots(projectId, 20);
-    // The release date lives in the cached collection, not in the snapshot.
-    return Promise.all(
-      snapshots.map(async (snapshot) => {
-        const cached = await deps.store.getCollection(snapshot.versionId);
-        return {
-          versionId: snapshot.versionId,
-          versionName: snapshot.versionName,
-          verdict: snapshot.verdict,
-          confidence: snapshot.confidence,
-          computedAt: snapshot.computedAt,
-          releaseDate: cached?.release.version.releaseDate ?? null,
-        };
-      }),
-    );
-  },
-  /** RI-12: the impact graph, built from the cached collection and the signals. */
-  'screen.impactGraph': async (payload, deps) => {
-    const versionId = required(payload, 'versionId');
-    const cached = await deps.store.getCollection(versionId);
-    const dossier = await deps.store.getDossier(versionId);
-    if (!cached || !dossier) return null;
-    return buildImpactGraph(cached.release, dossier.signals);
-  },
-  /** RI-14: what changed between the last two dossiers of a version. */
-  'screen.projectDiff': async (payload, deps) => {
-    const projectId = required(payload, 'projectId');
-    const versionId = required(payload, 'versionId');
-    const snapshots = (await deps.store.listSnapshots(projectId, 10)).filter(
-      (snapshot) => snapshot.versionId === versionId,
-    );
-    if (snapshots.length < 2) return null;
-    const [current, previous] = snapshots;
-    const [currentSignals, previousSignals] = await Promise.all([
-      deps.store.getSignals(current.id),
-      deps.store.getSignals(previous.id),
-    ]);
-    return diffSnapshots(
-      { snapshot: previous, signals: previousSignals },
-      { snapshot: current, signals: currentSignals },
-    );
-  },
-  /** RI-01: the versions of a project with their current verdict. */
-  'screen.projectVersions': async (payload, deps) => {
-    const projectId = required(payload, 'projectId');
-    const snapshots = await deps.store.listSnapshots(projectId, 50);
-    return snapshots.map((snapshot) => ({
-      versionId: snapshot.versionId,
-      versionName: snapshot.versionName,
-      verdict: snapshot.verdict,
-      confidence: snapshot.confidence,
-      computedAt: snapshot.computedAt,
-      released: snapshot.versionReleased,
-    }));
-  },
-  /** Settings screen: the policy is saved as a whole (RI-11). */
-  'screen.savePolicy': async (payload, deps) => {
-    const policy = payload.policy as Policy | undefined;
-    if (!policy || typeof policy.projectId !== 'string') {
-      throw new ActionError('invalid-input', 'A policy object with a projectId is required.');
-    }
-    await deps.store.savePolicy(policy);
-    return { ok: true, projectId: policy.projectId };
-  },
-  'screen.issueContext': async (payload, deps) => {
-    const issueId = required(payload, 'issueId');
-    const rows = await listVersionsForIssue(sql(), issueId);
-    const versions = await Promise.all(
-      rows.map(async (row) => ({
-        versionId: row.version_id,
-        versionName: row.version_name,
-        dossier: await deps.store.getDossier(row.version_id),
-      })),
-    );
-    // Observation mode: no verdict shown on the ticket (SPEC §20).
-    const projectId = typeof payload.projectId === 'string' ? payload.projectId : '';
-    const policy = projectId ? await deps.store.getPolicy(projectId) : null;
-    return { issueId, versions, observationMode: Boolean(policy?.observationMode) };
-  },
-};
+/**
+ * Screen invocations (SPEC §11): always the last saved dossier (SPEC §12).
+ * The resolvers live in `src/screens.ts`; this file only wires them.
+ */
 
 /** A SQL client of its own for the read-only version queries. */
 function sql(): SqlClient {
