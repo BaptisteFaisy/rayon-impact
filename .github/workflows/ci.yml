@@ -23,7 +23,7 @@ permissions:
 jobs:
   ci:
     name: ci
-    runs-on: [self-hosted, linux, x64, rayon-impact-worker]
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +35,10 @@ jobs:
       # Runners self-hosted persistants : on garde `node_modules` (l'app
       # TypeScript), on jette le reste. `git clean -ffdx` sans `-e` effacerait
       # les dépendances et ferait exploser le budget de 5 minutes.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
       - name: Nettoyage du workspace (node_modules conservé)
         shell: bash
         run: |
@@ -50,42 +54,6 @@ jobs:
       # qui faisait repartir un `npm ci` de 5 min à chaque run — donc un job tué
       # par son propre `timeout-minutes: 5`. La restauration par liens durs
       # prend quelques secondes.
-      - name: Dépendances (cache hors workspace, contrôle de complétude)
-        shell: bash
-        run: |
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-          export PATH="$HOME/bin:$PATH"
-          export NPM_CONFIG_CACHE="$HOME/.npm-ci-cache"
-          STATE="$HOME/.cache/rayon-impact-ci"
-          KEY="$(printf '%s' "$PWD" | sha256sum | cut -c1-12)"
-          mkdir -p "$STATE"
-          MARKER="$STATE/$KEY.lock-hash"
-          CACHE="$STATE/$KEY.node_modules"
-          LOCK_HASH="$(sha256sum package-lock.json | cut -d' ' -f1)"
-          MARKER_HASH="$(cat "$MARKER" 2>/dev/null || echo absent)"
-          # Un `npm ci` tué par le budget laisse un node_modules PARTIEL : tester
-          # seulement `-d node_modules` faisait sauter l'installation à tort, puis
-          # échouer tsc (« Cannot find type definition file for 'node' »).
-          complet() { [ -f "$1/.package-lock.json" ] && [ -d "$1/typescript" ] && [ -d "$1/@forge/api" ]; }
-          etat() { if complet "$1"; then echo complet; elif [ -d "$1" ]; then echo partiel; else echo absent; fi; }
-          echo "diag: cle=$KEY lock=${LOCK_HASH:0:12} marqueur=${MARKER_HASH:0:12} workspace=$(etat node_modules) cache=$([ -d "$CACHE" ] && etat "$CACHE" || echo absent)"
-          if complet node_modules && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
-            echo "node_modules complet et lock inchange - installation sautee"
-          elif [ -d "$CACHE" ] && complet "$CACHE" && [ "$LOCK_HASH" = "$MARKER_HASH" ]; then
-            # Incremental : `cp -aln` ne cree que les liens manquants. Un
-            # `rm -rf` suivi d'une copie complete de 642 paquets prenait 4 min
-            # sur un hote charge, soit tout le budget du job.
-            mkdir -p node_modules
-            cp -aln "$CACHE"/. node_modules/ 2>/dev/null || true
-            echo "node_modules complete depuis le cache (liens durs, incremental)"
-          else
-            echo "installation des dependances..."
-            npm ci --prefer-offline --no-audit --no-fund
-            printf '%s' "$LOCK_HASH" > "$MARKER"
-            rm -rf "$CACHE"
-            cp -al node_modules "$CACHE" 2>/dev/null || true
-          fi
-
       - name: Le TypeScript ou les dépendances ont-ils changé ?
         id: ts
         shell: bash
