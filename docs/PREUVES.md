@@ -237,3 +237,66 @@ sa liste équivalente (SPEC §11).
 l'utilisateur) : copier le profil Chrome de la machine, en extraire les cookies de session **en
 lecture seule** via CDP, puis piloter un navigateur isolé sur l'affichage virtuel `:99` (Xvfb).
 Aucun secret n'est écrit dans le dépôt.
+
+---
+
+## Démo hors ligne — l'app jouée sans site Jira (2026-11-14)
+
+**Ce qu'elle est.** Un serveur Node (`demo/server.mjs`, aucune dépendance, aucun réseau) qui
+monte les **écrans de production** avec les **données des scénarios de démo**. Ce ne sont pas des
+maquettes : `recomputeRelease` (le vrai pipeline) écrit le dossier, `SCREENS` (les vrais
+résolveurs) répond les quatre écrans, `runAction` (les neuf vraies actions Rovo/MCP) répond les
+appels. Seuls les ports changent : la collection vient des fixtures, le narrateur échoue faute de
+modèle — le pipeline prend alors son repli déterministe et le dossier porte
+`narrativeVerified: false`, comme en production.
+
+**Comment la rejouer.**
+
+```bash
+node demo/build.mjs      # bundle le code de l'app
+node demo/server.mjs     # http://localhost:8791
+```
+
+**Les quatre releases jouées**, mesurées par le moteur et verrouillées par
+`tests/demo/scenarios.test.ts` (27 tests, dont la séquence A→E du SPEC §18) :
+
+| scénario | verdict mesuré | ce qu'il prouve |
+| --- | --- | --- |
+| `paiements-24` | `no-go`, confiance haute, 5 bloquants / 2 majeurs / 3 mineurs | le jeu canonique, tel que DEMO-DATA §2 |
+| `paiements-24-video` | `no-go` → `conditional-go` après retrait de PAY-131 et deux dérogations | la séquence §6.1, étape par étape |
+| `mobile-31` | `go`, confiance haute, 0 signal | un avis positif n'est pas une absence de moteur |
+| `plateforme-90` | `no-go`, 6 bloquants de 5 familles + gel (EXP-03) + voisine (EXP-04) | les signaux lot C, jamais montrés en réel |
+
+**Captures (fenêtre sans focus, `agent-browser`, 1440×900)** — le rendu est celui des composants
+de `src/ui`, habillés par la doublure de test `@forge/react` :
+
+| capture | ce qu'elle montre |
+| --- | --- |
+| `2026-11-14-accueil.png` | l'accueil de démo : les quatre releases et leur verdict mesuré |
+| `2026-11-14-demo-signaux.png` | l'écran projet en français : bandeau NO-GO, couverture 13/14, synthèse, cinq signaux bloquants avec preuve et moyen de dégager |
+| `2026-11-14-demo-graphe.png` | l'onglet Graphe : le SVG d'impact (22 nœuds, anneaux séparés) et sa liste équitable |
+| `2026-11-14-demo-reglages.png` | l'écran de réglages : la table des sévérités et les champs de politique |
+| `2026-11-14-demo-gadget.png` | le gadget de tableau de bord : les versions et leur avis |
+| `2026-11-14-demo-ticket.png` | le panneau sous un ticket : « ce ticket retient la version 2.4 » |
+| `2026-11-14-demo-plateforme.png` | `plateforme-90` : six bloquants, dont le gel du calendrier et la version voisine |
+| `2026-11-14-demo-mobile.png` | `mobile-31` : un avis GO, pour que la démo ne soit pas qu'un mur rouge |
+
+**Deux défauts de production trouvés en jouant la démo, corrigés depuis :**
+
+1. **Les gabarits `{key}` restaient à l'écran.** `why` et `clear` du catalogue nomment leur sujet
+   (« Merge or close the open PRs on `{key}` », « Résoudre le bloquant `{blockerKey}` »), mais
+   `SignalList` les rendait sans paramètres : la console du panneau de preuve affichait
+   `{key}` au lieu de `PAY-131` (14 gabarits concernés). Corrigé dans
+   `src/ui/components/SignalList.tsx` (les paramètres du `finding` sont ceux du sujet, mêmes noms) ;
+   verrouillé par deux tests de `tests/ui/components.test.tsx` (aucun `\{[a-zA-Z0-9_]+\}` dans le
+   rendu, EN comme FR).
+2. **Le graphe d'impact était illisible.** Deux paires de types de nœuds partageaient le même
+   rayon (`team`/`incident` à 260, `page`/`pull-request` à 320) : au même index et au même angle,
+   deux nœuds de types différents tombaient au **même pixel**, et les libellés s'empilaient.
+   Corrigé dans `src/ui/components/GraphView.tsx` : un anneau par type, un canevas élargi
+   (1200×760) et des anneaux aplatis verticalement ; les tests de rendu passent inchangés.
+
+**Ce que la démo ne couvre pas, et le dit.** `screen.issueContext` lit SQL via
+`createForgeSqlClient()` (runtime Forge uniquement) : la démo répond la même charge utile depuis
+le store en mémoire. La synthèse reste en anglais sur un écran français — écart connu de l'app,
+annoncé sur l'écran plutôt que masqué.
