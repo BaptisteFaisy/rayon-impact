@@ -1,6 +1,6 @@
 import { getSignalDefinition } from '../../signals/registry';
 import { t } from '../../i18n/index';
-import type { Locale, Severity, Signal } from '../../types';
+import type { Locale, MessageRef, Severity, Signal } from '../../types';
 import { Box, Heading, Link, List, ListItem, Lozenge, Text, Strong, Em } from '../kit';
 
 /**
@@ -65,8 +65,8 @@ export function SignalList(props: SignalListProps) {
 function SignalItem({ signal, locale }: { signal: Signal; locale: Locale }) {
   const def = getSignalDefinition(signal.code);
   const finding = t(signal.finding, locale);
-  const why = t(def.why, locale);
-  const clear = t(def.clear, locale);
+  const why = t(withFindingParams(def.why, signal), locale);
+  const clear = t(withFindingParams(def.clear, signal), locale);
 
   return (
     <ListItem>
@@ -90,4 +90,19 @@ function SignalItem({ signal, locale }: { signal: Signal; locale: Locale }) {
       ))}
     </ListItem>
   );
+}
+
+/**
+ * The catalogue's `why` and `clear` templates name the subject they talk about
+ * (`Merge or close the open PRs on {key}`, `Résoudre le bloquant {blockerKey}`),
+ * but a definition carries no values: only the raised signal does. Rendering the
+ * template without them left the literal placeholder on screen — `{key}` inside
+ * a proof panel (observed in the offline demo, 2026-11-14).
+ *
+ * The finding's params are exactly the values those templates expect (same
+ * subject, same names), so they are handed over unchanged. A template with no
+ * placeholder ignores them, which is why no detection is needed here.
+ */
+function withFindingParams(ref: MessageRef, signal: Signal): MessageRef {
+  return { ...ref, params: signal.finding.params ?? {} };
 }

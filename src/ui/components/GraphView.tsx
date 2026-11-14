@@ -16,16 +16,6 @@ export interface GraphViewProps {
   locale: Locale;
 }
 
-const RADIUS: Record<GraphNodeKind, number> = {
-  version: 0,
-  issue: 120,
-  service: 200,
-  team: 260,
-  incident: 260,
-  page: 320,
-  'pull-request': 320,
-};
-
 const COLOR: Record<GraphNodeKind, string> = {
   version: '#0052CC',
   issue: '#36B37E',
@@ -36,14 +26,43 @@ const COLOR: Record<GraphNodeKind, string> = {
   'pull-request': '#8777D9',
 };
 
+/**
+ * Ring radii above collide: `team` and `incident` share 260, `page` and
+ * `pull-request` share 320. Two kinds at the same radius put their first node
+ * at the very same pixel (same index, same angle), which is how the graph came
+ * out unreadable — labels stacked on one point (observed in the demo,
+ * 2026-11-14). Each kind gets its own ring instead, wide enough for the labels
+ * of a 14-ticket release not to overlap, and the rings are flattened
+ * vertically so a big radius still fits the canvas.
+ */
+const RING_OF: Record<GraphNodeKind, number> = {
+  version: 0,
+  issue: 200,
+  service: 300,
+  team: 360,
+  incident: 420,
+  page: 480,
+  'pull-request': 540,
+};
+
+/** Vertical compression of the rings: the canvas is wider than it is tall. */
+const RING_FLATTEN = 0.62;
+
+/** Canvas and centre of the SVG image. */
+const CANVAS = { width: 1200, height: 760, cx: 600, cy: 380 };
+
 /** Deterministic layout: one ring per kind, nodes spread evenly on it. */
 function positionOf(nodes: GraphNode[], node: GraphNode): { x: number; y: number } {
-  const ring = RADIUS[node.kind];
-  if (ring === 0) return { x: 360, y: 260 };
+  const ring = RING_OF[node.kind];
+  if (node.kind === 'version') return { x: CANVAS.cx, y: CANVAS.cy };
   const sameKind = nodes.filter((candidate) => candidate.kind === node.kind);
   const index = sameKind.findIndex((candidate) => candidate.id === node.id);
-  const angle = (2 * Math.PI * index) / Math.max(sameKind.length, 1);
-  return { x: 360 + ring * Math.cos(angle), y: 260 + ring * Math.sin(angle) };
+  const order = (Object.keys(RING_OF) as GraphNodeKind[]).indexOf(node.kind);
+  const angle = (2 * Math.PI * index) / Math.max(sameKind.length, 1) + order * (Math.PI / 7);
+  return {
+    x: CANVAS.cx + ring * Math.cos(angle),
+    y: CANVAS.cy + ring * RING_FLATTEN * Math.sin(angle),
+  };
 }
 
 /** Échappe le texte SVG (les libellés de tickets peuvent contenir & ou <). */
@@ -77,12 +96,13 @@ function graphImage(
     .map((node) => {
       const position = positions.get(node.id);
       if (!position) return '';
-      const radius = node.kind === 'version' ? 10 : 6;
+      const radius = node.kind === 'version' ? 16 : 9;
       const label = escapeXml(node.restricted ? '•' : node.label);
-      return `<circle cx="${position.x}" cy="${position.y}" r="${radius}" fill="${COLOR[node.kind]}"/><text x="${position.x + 10}" y="${position.y + 4}" font-size="10" fill="#172B4D">${label}</text>`;
+      return `<circle cx="${position.x}" cy="${position.y}" r="${radius}" fill="${COLOR[node.kind]}"/><text x="${position.x + radius + 4}" y="${position.y + 5}" font-size="15" fill="#172B4D">${label}</text>`;
     })
     .join('');
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520">${edges}${nodes}</svg>`;
+  const size = `width="${CANVAS.width}" height="${CANVAS.height}"`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" ${size}>${edges}${nodes}</svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 

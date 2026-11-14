@@ -146,6 +146,28 @@ describe('SignalList', () => {
     expect(html).toContain('<ul');
     expect(html).toContain('href=');
   });
+
+  it('fills the catalogue templates: no `{param}` is left on screen', () => {
+    // `why`/`clear` name their subject (`on {key}`, `bloquant {blockerKey}`);
+    // the values live on the raised signal, not on the definition. Rendering a
+    // template without them showed the literal placeholder in the proof panel.
+    for (const locale of ['en', 'fr'] as const) {
+      const html = renderToStaticMarkup(
+        <SignalList signals={demoData.dossier.signals} locale={locale} />,
+      );
+      expect(html).not.toMatch(/\{[a-zA-Z0-9_]+\}/);
+    }
+    const en = renderToStaticMarkup(<SignalList signals={demoData.dossier.signals} locale="en" />);
+    expect(en).toContain('Merge or close the open PRs on PAY-131');
+    expect(en).toContain('Resolve blocker PAY-118, or remove PAY-130 from the release');
+  });
+
+  it('leaves a template with no placeholder untouched', () => {
+    const html = renderToStaticMarkup(
+      <SignalList signals={demoData.dossier.signals} locale="fr" />,
+    );
+    expect(html).toContain('Passer le ticket à Terminé, ou le retirer de la version dans Jira.');
+  });
 });
 
 describe('SimulationPanel', () => {
